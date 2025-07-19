@@ -4,13 +4,18 @@ import {
 	authMiddleware,
 	generateTokens,
 	verifyRefreshToken,
-} from "../middleware/auth";
-import { authRateLimiter } from "../middleware/rateLimiter";
-import { createError } from "../middleware/errorHandler";
-import { logger } from "../config/logger";
-import VendorRepository from "../repositories/vendor";
-import { UserRepository } from "../repositories/user";
-import { registerSchema, loginSchema } from "../utils/validation";
+} from "@/middleware/auth";
+import { authRateLimiter } from "@/middleware/rateLimiter";
+import { createError } from "@/middleware/errorHandler";
+import { logger } from "@/config/logger";
+import VendorRepository from "@/repositories/vendor";
+import { UserRepository } from "@/repositories/user";
+import {
+	registerSchema,
+	loginSchema,
+	forgotPasswordSchema,
+	refreshTokenSchema,
+} from "@/utils/validation";
 
 const auth = new Hono();
 
