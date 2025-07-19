@@ -1,0 +1,58 @@
+{
+	"name": "live-ecommerce-api",
+	"version": "1.0.0",
+	"description": "A comprehensive backend system for a multi-vendor live streaming and short video e-commerce platform",
+	"scripts": {
+		"dev": "bun run --watch src/index.ts",
+		"build": "bun build src/index.ts --outdir dist --target bun",
+		"start": "bun run dist/index.js",
+		"test": "bun test",
+		"test:watch": "bun test --watch",
+		"db:migrate": "bun run src/database/migrate.ts",
+		"db:seed": "bun run src/database/seed.ts",
+		"lint": " bunx biome format --write"
+	},
+	"keywords": [
+		"live-streaming",
+		"ecommerce",
+		"short-video",
+		"multi-vendor",
+		"api",
+		"backend",
+		"typescript",
+		"hono",
+		"bun"
+	],
+	"dependencies": {
+		"@paralleldrive/cuid2": "^2.2.2",
+		"@simplewebauthn/server": "^13.1.1",
+		"compression": "latest",
+		"dotenv": "latest",
+		"ffmpeg-static": "latest",
+		"fluent-ffmpeg": "latest",
+		"hono": "latest",
+		"multer": "latest",
+		"moment": "^2.30.1",
+		"sharp": "^0.33.2",
+		"node-media-server": "latest",
+		"nodemailer": "latest",
+		"pg": "latest",
+		"redis": "latest",
+		"socket.io": "latest",
+		"stripe": "latest",
+		"winston": "latest",
+		"winston-daily-rotate-file": "^5.0.0",
+		"zod": "^3.25.67"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "latest",
+		"@types/bun": "latest",
+		"@types/compression": "^1.8.1",
+		"@types/fluent-ffmpeg": "^2.1.27",
+		"@types/multer": "^1.4.13",
+		"@types/node-media-server": "^2.3.7",
+		"@types/nodemailer": "^6.4.17",
+		"@types/pg": "^8.15.4",
+		"typescript": "^5.9.0-beta"
+	}
+}
