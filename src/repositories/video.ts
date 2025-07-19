@@ -3,7 +3,6 @@ import { CreateVideoData, UpdateVideoData, Video } from "@/types";
 import { PoolClient } from "pg";
 
 export class VideoRepository {
-	// Create a new video
 	static async create(data: CreateVideoData): Promise<Video> {
 		const sql = `
       INSERT INTO videos (

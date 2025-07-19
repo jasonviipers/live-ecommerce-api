@@ -5,6 +5,10 @@ import { UserRepository } from "@/repositories/user";
 import VendorRepository from "@/repositories/vendor";
 import logger from "@/config/logger";
 import { config } from "@/config";
+import VideoRepository from "@/repositories/video";
+import ProductRepository from "@/repositories/product";
+import StreamRepository from "@/repositories/stream";
+import OrderRepository from "@/repositories/order";
 
 export interface JWTPayload {
 	userId: string;
@@ -192,7 +196,45 @@ export const requireResourceOwnership =
 			await next();
 			return;
 		}
-		/* TODO: implement resource-specific ownership check */
+		const resourceId = c.req.param(resourceIdParam);
+		if (!resourceId) {
+			throw createError.badRequest(
+				`Resource ID parameter '${resourceIdParam}' is required`,
+			);
+		}
+		const path = c.req.path;
+		if (path.includes("/videos/")) {
+			const video = await VideoRepository.findById(resourceId);
+			if (!video) throw createError.notFound("Video not found");
+			if (video.vendorId !== user.vendorId) {
+				throw createError.forbidden("You don't own this video");
+			}
+		} else if (path.includes("/products/")) {
+			const product = await ProductRepository.findById(resourceId);
+			if (!product) throw createError.notFound("Product not found");
+			if (product.vendorId !== user.vendorId) {
+				throw createError.forbidden("You don't own this product");
+			}
+		} else if (path.includes("/streams/")) {
+			const stream = await StreamRepository.findById(resourceId);
+			if (!stream) throw createError.notFound("Stream not found");
+			if (stream.vendorId !== user.vendorId) {
+				throw createError.forbidden("You don't own this stream");
+			}
+		} else if (path.includes("/orders/")) {
+			const order = await OrderRepository.findById(resourceId);
+			if (!order) throw createError.notFound("Order not found");
+			if (user.role === "customer" && order.userId !== user.id) {
+				throw createError.forbidden("You don't own this order");
+			}
+			if (user.role === "vendor" && order.vendorId !== user.vendorId) {
+				throw createError.forbidden("You don't own this order");
+			}
+		} else {
+			throw createError.forbidden(
+				"Ownership check not implemented for this resource type",
+			);
+		}
 		await next();
 	};
 
