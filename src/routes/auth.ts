@@ -363,5 +363,4 @@ auth.post(
 		}
 	},
 );
-
 export default auth;
