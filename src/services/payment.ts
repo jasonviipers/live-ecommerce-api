@@ -1,16 +1,16 @@
 import Stripe from "stripe";
-import { query, withTransaction } from "../database/connection";
+import { query, withTransaction } from "@/database/connection";
 import { PoolClient } from "pg";
-import { config } from "../config";
-import { logger } from "../config/logger";
-import { getSocketManager } from "../config/socket";
+import { config } from "@/config";
+import logger from "@/config/logger";
+import NotificationService from "./notification";
+import { getSocketManager } from "@/config/socket";
 import type {
 	CreatePaymentIntentData,
 	CreatePayoutData,
 	Payment,
 	Payout,
-} from "../types";
-import NotificationService from "./notification";
+} from "@/types";
 
 export class PaymentService {
 	private static stripe = new Stripe(config.stripe.secretKey, {

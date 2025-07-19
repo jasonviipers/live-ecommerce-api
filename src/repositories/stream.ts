@@ -1,7 +1,7 @@
 import { PoolClient } from "pg";
-import { query, withTransaction } from "../database/connection";
-import type { CreateStreamData, Stream, UpdateStreamData } from "../types";
 import { createId } from "@paralleldrive/cuid2";
+import type { CreateStreamData, Stream, UpdateStreamData } from "@/types";
+import { query, withTransaction } from "@/database/connection";
 
 export class StreamRepository {
 	static async create(data: CreateStreamData): Promise<Stream> {
@@ -188,11 +188,11 @@ export class StreamRepository {
 		}
 
 		const sql = `
-      UPDATE streams 
-      SET ${fields.join(", ")}
-      WHERE id = $${++paramCount}
-      RETURNING *
-    `;
+				UPDATE streams 
+				SET ${fields.join(", ")}
+				WHERE id = $${++paramCount}
+				RETURNING *
+				`;
 		values.push(id);
 
 		const result = await query(sql, values);
@@ -356,7 +356,7 @@ export class StreamRepository {
 		return withTransaction(async (client: PoolClient) => {
 			const sql = "DELETE FROM streams WHERE id = $1";
 			const result = await client.query(sql, [id]);
-			return result.rowCount > 0;
+			return (result.rowCount ?? 0) > 0;
 		});
 	}
 

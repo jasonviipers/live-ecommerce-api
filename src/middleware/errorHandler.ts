@@ -1,25 +1,51 @@
+import { config } from "@/config";
+import logger from "@/config/logger";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { logger } from "../config/logger";
-import { config } from "../config";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 export interface ApiError extends Error {
 	statusCode?: number;
 	code?: string;
-	details?: any;
+	details?: unknown;
+}
+
+export interface ErrorResponse {
+	error: {
+		message: string;
+		code: string;
+		statusCode: number;
+		details?: unknown;
+		stack?: string;
+	};
+	timestamp: string;
+	path: string;
+	requestId?: string;
+}
+
+export interface ErrorLog {
+	message: string;
+	statusCode: number;
+	code: string;
+	stack?: string;
+	url: string;
+	method: string;
+	userAgent?: string;
+	ip?: string;
+	details?: unknown;
 }
 
 export class AppError extends Error implements ApiError {
 	public statusCode: number;
 	public code: string;
-	public details?: any;
+	public details?: unknown;
 	public isOperational: boolean;
 
 	constructor(
 		message: string,
 		statusCode: number = 500,
 		code: string = "INTERNAL_ERROR",
-		details?: any,
+		details?: unknown,
 		isOperational: boolean = true,
 	) {
 		super(message);
@@ -36,12 +62,11 @@ export const errorHandler = (
 	error: Error | HTTPException | AppError,
 	c: Context,
 ) => {
-	let statusCode = 500;
+	let statusCode: number = 500;
 	let message = "Internal Server Error";
 	let code = "INTERNAL_ERROR";
-	let details: any = undefined;
+	let details: unknown = undefined;
 
-	// Handle different error types
 	if (error instanceof HTTPException) {
 		statusCode = error.status;
 		message = error.message;
@@ -79,7 +104,7 @@ export const errorHandler = (
 	}
 
 	// Log error
-	const errorLog = {
+	const errorLog: ErrorLog = {
 		message: error.message,
 		statusCode,
 		code,
@@ -97,8 +122,7 @@ export const errorHandler = (
 		logger.warn("Client Error", errorLog);
 	}
 
-	// Prepare response
-	const response: any = {
+	const response: ErrorResponse = {
 		error: {
 			message,
 			code,
@@ -120,38 +144,37 @@ export const errorHandler = (
 		response.requestId = requestId;
 	}
 
-	return c.json(response, statusCode as any);
+	return c.json(response, statusCode as ContentfulStatusCode);
 };
 
-// Error factory functions
 export const createError = {
-	badRequest: (message: string, details?: any) =>
+	badRequest: (message: string, details?: unknown) =>
 		new AppError(message, 400, "BAD_REQUEST", details),
 
-	unauthorized: (message: string = "Unauthorized", details?: any) =>
+	unauthorized: (message: string = "Unauthorized", details?: unknown) =>
 		new AppError(message, 401, "UNAUTHORIZED", details),
 
-	forbidden: (message: string = "Forbidden", details?: any) =>
+	forbidden: (message: string = "Forbidden", details?: unknown) =>
 		new AppError(message, 403, "FORBIDDEN", details),
 
-	notFound: (message: string = "Not Found", details?: any) =>
+	notFound: (message: string = "Not Found", details?: unknown) =>
 		new AppError(message, 404, "NOT_FOUND", details),
 
-	conflict: (message: string, details?: any) =>
+	conflict: (message: string, details?: unknown) =>
 		new AppError(message, 409, "CONFLICT", details),
 
-	unprocessableEntity: (message: string, details?: any) =>
+	unprocessableEntity: (message: string, details?: unknown) =>
 		new AppError(message, 422, "UNPROCESSABLE_ENTITY", details),
 
-	tooManyRequests: (message: string = "Too Many Requests", details?: any) =>
+	tooManyRequests: (message: string = "Too Many Requests", details?: unknown) =>
 		new AppError(message, 429, "TOO_MANY_REQUESTS", details),
 
-	internal: (message: string = "Internal Server Error", details?: any) =>
+	internal: (message: string = "Internal Server Error", details?: unknown) =>
 		new AppError(message, 500, "INTERNAL_ERROR", details),
 
 	serviceUnavailable: (
 		message: string = "Service Unavailable",
-		details?: any,
+		details?: unknown,
 	) => new AppError(message, 503, "SERVICE_UNAVAILABLE", details),
 };
 

@@ -1,5 +1,5 @@
-import { query } from "../database/connection";
-import type { CreateUserData, UpdateUserData, User } from "../types";
+import { query } from "@/database/connection";
+import type { CreateUserData, UpdateUserData, User } from "@/types";
 
 export class UserRepository {
 	static async create(data: CreateUserData): Promise<User> {

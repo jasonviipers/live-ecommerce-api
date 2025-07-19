@@ -1,9 +1,8 @@
-import { query, withTransaction } from "../database/connection";
 import { PoolClient } from "pg";
-import type { CreateVendorData, UpdateVendorData, Vendor } from "../types";
+import { query, withTransaction } from "@/database/connection";
+import type { CreateVendorData, UpdateVendorData, Vendor } from "@/types";
 
 export class VendorRepository {
-	// Create a new vendor
 	static async create(data: CreateVendorData): Promise<Vendor> {
 		const sql = `
       INSERT INTO vendors (
@@ -75,7 +74,6 @@ export class VendorRepository {
 		const values: any[] = [];
 		let paramCount = 0;
 
-		// Apply filters
 		if (filters.isActive !== undefined) {
 			whereClause += ` AND is_active = $${++paramCount}`;
 			values.push(filters.isActive);

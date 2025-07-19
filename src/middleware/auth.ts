@@ -1,10 +1,10 @@
 import { Context, Next } from "hono";
 import { SignJWT, jwtVerify, JWTPayload as JoseJWTPayload } from "jose";
-import { config } from "../config";
 import { createError } from "./errorHandler";
-import { logger } from "../config/logger";
-import { UserRepository } from "../repositories/user";
-import VendorRepository from "../repositories/vendor";
+import { UserRepository } from "@/repositories/user";
+import VendorRepository from "@/repositories/vendor";
+import logger from "@/config/logger";
+import { config } from "@/config";
 
 export interface JWTPayload {
 	userId: string;

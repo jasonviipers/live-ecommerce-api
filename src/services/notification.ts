@@ -1,7 +1,7 @@
-import { query } from "../database/connection";
-import { getSocketManager } from "../config/socket";
-import { logger } from "../config/logger";
-import type { CreateNotificationData, Notification } from "../types";
+import { query } from "@/database/connection";
+import { getSocketManager } from "@/config/socket";
+import { logger } from "@/config/logger";
+import type { CreateNotificationData, Notification } from "@/types";
 
 export class NotificationService {
 	static async create(data: CreateNotificationData): Promise<Notification> {
@@ -93,11 +93,11 @@ export class NotificationService {
 
 		// Get notifications
 		const sql = `
-      SELECT * FROM notifications 
-      ${whereClause}
-      ORDER BY created_at DESC
-      LIMIT $${++paramCount} OFFSET $${++paramCount}
-    `;
+			SELECT * FROM notifications 
+			${whereClause}
+			ORDER BY created_at DESC
+			LIMIT $${++paramCount} OFFSET $${++paramCount}
+		`;
 		values.push(limit, offset);
 
 		const result = await query(sql, values);
@@ -125,11 +125,11 @@ export class NotificationService {
 	// Mark all notifications as read for user
 	static async markAllAsRead(userId: string): Promise<number> {
 		const sql = `
-      UPDATE notifications 
-      SET is_read = true, read_at = CURRENT_TIMESTAMP
-      WHERE user_id = $1 AND is_read = false
-      RETURNING *
-    `;
+			UPDATE notifications 
+			SET is_read = true, read_at = CURRENT_TIMESTAMP
+			WHERE user_id = $1 AND is_read = false
+			RETURNING *
+		`;
 
 		const result = await query(sql, [userId]);
 		return result.rowCount;
@@ -297,5 +297,3 @@ export class NotificationService {
 		};
 	}
 }
-
-export default NotificationService;
