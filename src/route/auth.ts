@@ -13,7 +13,7 @@ import { UserRepository } from "../repositories/user";
 import { registerSchema, loginSchema } from "../utils/validation";
 
 const auth = new Hono();
-// Register endpoint
+
 auth.post(
 	"/register",
 	authRateLimiter,
@@ -24,7 +24,7 @@ auth.post(
 
 			const existingUser = await UserRepository.findByEmail(data.email);
 			if (existingUser) {
-				throw createError.conflict("Please enter a valid email");
+				throw createError.conflict("Please provide a different email address");
 			}
 
 			const user = await UserRepository.create({
@@ -172,11 +172,13 @@ auth.post("/refresh", zValidator("json", refreshTokenSchema), async (c) => {
 
 		const decoded = verifyRefreshToken(refreshToken);
 
+		// Verify user still exists and is active
 		const user = await UserRepository.findById(decoded.userId);
 		if (!user || !user.isActive) {
 			throw createError.unauthorized("Invalid refresh token");
 		}
 
+		// Get vendor info if user is a vendor
 		let vendor = null;
 		if (user.role === "vendor") {
 			vendor = await VendorRepository.findByUserId(user.id);
@@ -201,11 +203,28 @@ auth.post("/refresh", zValidator("json", refreshTokenSchema), async (c) => {
 	}
 });
 
+auth.post("/logout", authMiddleware, async (c) => {
+	try {
+		const user = c.get("user");
+
+		// TODO: Implement token blacklisting in Redis
+		// await tokenService.revokeRefreshToken(user.id);
+
+		logger.info("User logged out successfully", { userId: user.id });
+
+		return c.json({
+			message: "Logout successful",
+		});
+	} catch (error) {
+		logger.error("Logout failed", error as Error);
+		throw error;
+	}
+});
+
 auth.get("/me", authMiddleware, async (c) => {
 	try {
 		const currentUser = c.get("user");
 
-		// Fetch complete user data from database
 		const user = await UserRepository.findById(currentUser.id);
 		if (!user) {
 			throw createError.notFound("User not found");
@@ -253,24 +272,6 @@ auth.get("/me", authMiddleware, async (c) => {
 	}
 });
 
-auth.post("/logout", authMiddleware, async (c) => {
-	try {
-		const user = c.get("user");
-
-		// TODO: Implement token blacklisting in Redis
-		// await tokenService.revokeRefreshToken(user.id);
-
-		logger.info("User logged out successfully", { userId: user.id });
-
-		return c.json({
-			message: "Logout successful",
-		});
-	} catch (error) {
-		logger.error("Logout failed", error as Error);
-		throw error;
-	}
-});
-
 auth.post(
 	"/forgot-password",
 	authRateLimiter,
@@ -279,7 +280,6 @@ auth.post(
 		try {
 			const { email } = c.req.valid("json");
 
-			// Find user by email
 			const user = await UserRepository.findByEmail(email);
 			if (user) {
 				// TODO: Generate reset token and send email
@@ -364,5 +364,4 @@ auth.post(
 		}
 	},
 );
-
 export default auth;
