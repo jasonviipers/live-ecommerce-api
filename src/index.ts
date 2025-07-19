@@ -1,6 +1,99 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { logger as honoLogger } from "hono/logger";
+import { prettyJSON } from "hono/pretty-json";
+import { secureHeaders } from "hono/secure-headers";
+
+// Configuration and utilities
+import { config } from "./config";
+import { logger } from "./config/logger";
+import { rateLimiter } from "./middleware/rateLimiter";
+import { errorHandler } from "./middleware/errorHandler";
+
+// Database connections
+import {
+	initializeDatabase,
+	closeDatabase,
+	checkDatabaseHealth,
+} from "./database/connection";
+import {
+	checkRedisHealth,
+	closeRedis,
+	initializeRedis,
+} from "./database/redis";
+
+// Import routes
+import authRoutes from "./routes/auth";
 
 const app = new Hono();
+
+app.use(
+	"*",
+	honoLogger((message) => {
+		logger.info(message, { type: "http" });
+	}),
+);
+
+app.use("*", prettyJSON());
+app.use("*", secureHeaders());
+
+app.use(
+	"*",
+	cors({
+		origin: config.cors.origin,
+		credentials: config.cors.credentials,
+		allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+		allowHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+	}),
+);
+
+app.use("*", rateLimiter);
+
+app.get("/health", async (c) => {
+	const dbHealth = await checkDatabaseHealth();
+	const redisHealth = await checkRedisHealth();
+
+	const health = {
+		status: dbHealth && redisHealth ? "ok" : "degraded",
+		timestamp: new Date().toISOString(),
+		environment: config.server.nodeEnv,
+		version: "1.0.0",
+		services: {
+			database: dbHealth ? "healthy" : "unhealthy",
+			redis: redisHealth ? "healthy" : "unhealthy",
+		},
+	};
+
+	const statusCode = health.status === "ok" ? 200 : 503;
+	return c.json(health, statusCode);
+});
+
+app.route("/api/auth", authRoutes);
+// app.route('/api/users', userRoutes);
+// app.route('/api/vendors', vendorRoutes);
+// app.route('/api/products', productRoutes);
+// app.route('/api/orders', orderRoutes);
+// app.route('/api/cart', cartRoutes);
+// app.route('/api/streams', streamRoutes);
+// app.route('/api/videos', videoRoutes);
+// app.route('/api/payments', paymentRoutes);
+// app.route('/api/analytics', analyticsRoutes);
+// app.route('/api/uploads', uploadRoutes);
+// app.route('/api/notifications', notificationRoutes);
+
+// 404 handler
+app.notFound((c) => {
+	return c.json(
+		{
+			error: "Not Found",
+			message: "The requested resource was not found",
+			path: c.req.path,
+		},
+		404,
+	);
+});
+
+app.onError(errorHandler);
 
 app.get("/", (c) => {
 	return c.text("Hello Hono!");

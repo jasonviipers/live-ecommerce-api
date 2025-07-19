@@ -33,10 +33,10 @@ declare module "hono" {
 /* ------------------------------------------------------------------ */
 /* 1.  Shared helpers                                                  */
 /* ------------------------------------------------------------------ */
-const secret = new TextEncoder().encode(config.jwt.secret);
-const refreshSecret = new TextEncoder().encode(config.jwt.refreshSecret);
+export const secret = new TextEncoder().encode(config.jwt.secret);
+export const refreshSecret = new TextEncoder().encode(config.jwt.refreshSecret);
 
-function toJWTPayload(p: JoseJWTPayload): JWTPayload {
+export function toJWTPayload(p: JoseJWTPayload): JWTPayload {
 	return {
 		userId: String(p.userId),
 		email: String(p.email),

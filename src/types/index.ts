@@ -356,3 +356,75 @@ export interface UpdateVideoData {
 	tags?: string[];
 	metadata?: any;
 }
+
+export interface Payment {
+	id: string;
+	orderId: string;
+	vendorId: string;
+	userId: string;
+	stripePaymentIntentId: string;
+	stripeChargeId?: string;
+	amount: number;
+	currency: string;
+	status:
+		| "pending"
+		| "processing"
+		| "succeeded"
+		| "failed"
+		| "canceled"
+		| "refunded"
+		| "partially_refunded";
+	paymentMethod: string;
+	metadata?: any;
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+export interface Payout {
+	id: string;
+	vendorId: string;
+	stripePayoutId?: string;
+	amount: number;
+	currency: string;
+	status: "pending" | "in_transit" | "paid" | "failed" | "canceled";
+	description?: string;
+	metadata?: any;
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+export interface CreatePaymentIntentData {
+	orderId: string;
+	amount: number;
+	currency?: string;
+	paymentMethodTypes?: string[];
+	metadata?: any;
+}
+
+export interface CreatePayoutData {
+	vendorId: string;
+	amount: number;
+	currency?: string;
+	description?: string;
+	metadata?: any;
+}
+
+export interface Notification {
+	id: string;
+	userId: string;
+	type: "order" | "stream" | "product" | "vendor" | "system";
+	title: string;
+	message: string;
+	data?: any;
+	isRead: boolean;
+	createdAt: Date;
+	readAt?: Date;
+}
+
+export interface CreateNotificationData {
+	userId: string;
+	type: Notification["type"];
+	title: string;
+	message: string;
+	data?: any;
+}
