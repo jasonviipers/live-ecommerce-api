@@ -39,6 +39,17 @@ const changePasswordSchema = z.object({
 	newPassword: z.string().min(8, "New password must be at least 8 characters"),
 });
 
+const querySchema = z.object({
+  page: z.string().transform(val => parseInt(val) || 1),
+  limit: z.string().transform(val => Math.min(parseInt(val) || 20, 100)),
+  unreadOnly: z.string().transform(val => val === 'true').optional(),
+});
+
+const markAsReadSchema = z.object({
+  notificationIds: z.array(z.string().uuid()).optional(),
+  markAll: z.boolean().optional(),
+});
+
 export {
 	registerSchema,
 	loginSchema,
@@ -46,4 +57,6 @@ export {
 	forgotPasswordSchema,
 	resetPasswordSchema,
 	changePasswordSchema,
+	querySchema,
+	markAsReadSchema
 };
