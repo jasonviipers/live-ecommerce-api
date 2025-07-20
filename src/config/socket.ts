@@ -16,15 +16,6 @@ export interface AuthenticatedSocket extends Socket {
 	vendorId?: string;
 }
 
-declare module "socket.io" {
-	interface Socket {
-		userId?: string;
-		userRole?: string;
-		vendorId?: string;
-		isAuthenticated?: boolean;
-	}
-}
-
 export class SocketManager {
 	private io: SocketIOServer;
 	private connectedUsers: Map<string, string> = new Map();
