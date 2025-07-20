@@ -40,9 +40,9 @@ payments.post(
 
 			if (user.role === "customer" && order.userId !== user.id) {
 				throw createError.forbidden("Access denied to this order");
-			}
-
-			if (user.role === "vendor" && order.vendorId !== user.vendorId) {
+			} else if (user.role === "vendor" && order.vendorId !== user.vendorId) {
+				throw createError.forbidden("Access denied to this order");
+			} else if (user.role !== "admin") {
 				throw createError.forbidden("Access denied to this order");
 			}
 
@@ -94,9 +94,9 @@ payments.get("/:id", authMiddleware, requireAuthenticated, async (c) => {
 		// Check access (users can see their own payments, vendors their payments, admins all)
 		if (user.role === "customer" && payment.userId !== user.id) {
 			throw createError.forbidden("Access denied to this payment");
-		}
-
-		if (user.role === "vendor" && payment.vendorId !== user.vendorId) {
+		} else if (user.role === "vendor" && payment.vendorId !== user.vendorId) {
+			throw createError.forbidden("Access denied to this payment");
+		} else if (user.role !== "admin") {
 			throw createError.forbidden("Access denied to this payment");
 		}
 
@@ -127,9 +127,9 @@ payments.get(
 
 			if (user.role === "customer" && order.userId !== user.id) {
 				throw createError.forbidden("You don't own this order");
-			}
-
-			if (user.role === "vendor" && order.vendorId !== user.vendorId) {
+			} else if (user.role === "vendor" && order.vendorId !== user.vendorId) {
+				throw createError.forbidden("You don't own this order");
+			} else if (user.role !== "admin") {
 				throw createError.forbidden("You don't own this order");
 			}
 
