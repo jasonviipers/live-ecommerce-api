@@ -50,6 +50,16 @@ const markAsReadSchema = z.object({
 	markAll: z.boolean().optional(),
 });
 
+const addItemSchema = z.object({
+	productId: z.string().uuid("Invalid product ID"),
+	variantId: z.string().uuid().optional(),
+	quantity: z.number().int().min(1, "Quantity must be at least 1"),
+});
+
+const updateItemSchema = z.object({
+	quantity: z.number().int().min(0, "Quantity must be non-negative"),
+});
+
 export {
 	registerSchema,
 	loginSchema,
@@ -59,4 +69,6 @@ export {
 	changePasswordSchema,
 	querySchema,
 	markAsReadSchema,
+	addItemSchema,
+	updateItemSchema,
 };
