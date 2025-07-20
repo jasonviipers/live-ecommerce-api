@@ -59,7 +59,6 @@ export class NotificationService {
 		}
 	}
 
-	// Get user notifications
 	static async getUserNotifications(
 		userId: string,
 		page: number = 1,
@@ -217,6 +216,17 @@ export class NotificationService {
 		});
 	}
 
+	static async sendVendorNotification(
+		vendorId: string,
+		notificationData: Omit<CreateNotificationData, "userId">,
+	): Promise<void> {
+		await this.create({
+			userId: vendorId,
+			...notificationData,
+			type: "payout",
+		});
+	}
+
 	static async notifyVendorLowStock(
 		vendorId: string,
 		productId: string,
@@ -230,6 +240,37 @@ export class NotificationService {
 			title: "Low Stock Alert",
 			message: `${productName} is running low (${currentStock} left, threshold: ${threshold})`,
 			data: { productId, productName, currentStock, threshold },
+		});
+	}
+
+	static async notifyVendorOrderShipped(
+		vendorId: string,
+		orderId: string,
+		orderNumber: string,
+		customerName: string,
+		trackingNumber: string,
+	): Promise<void> {
+		await this.create({
+			userId: vendorId,
+			type: "vendor",
+			title: "Order Shipped",
+			message: `Order #${orderNumber} from ${customerName} has been shipped (tracking: ${trackingNumber})`,
+			data: { orderId, orderNumber, customerName, trackingNumber },
+		});
+	}
+
+	static async notifyVendorOrderDelivered(
+		vendorId: string,
+		orderId: string,
+		orderNumber: string,
+		customerName: string,
+	): Promise<void> {
+		await this.create({
+			userId: vendorId,
+			type: "vendor",
+			title: "Order Delivered",
+			message: `Order #${orderNumber} from ${customerName} has been delivered`,
+			data: { orderId, orderNumber, customerName },
 		});
 	}
 
