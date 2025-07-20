@@ -223,7 +223,6 @@ export class NotificationService {
 		await this.create({
 			userId: vendorId,
 			...notificationData,
-			type: "payout",
 		});
 	}
 
