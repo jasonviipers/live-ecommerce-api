@@ -116,6 +116,27 @@ const querySchema = z.object({
 	dateTo: z.string().datetime().optional(),
 });
 
+const createPaymentIntentSchema = z.object({
+	orderId: z.string().uuid("Invalid order ID"),
+	paymentMethodTypes: z.array(z.string()).default(["card"]),
+	metadata: z.record(z.any()).optional(),
+});
+
+const createRefundSchema = z.object({
+	amount: z.number().positive().optional(),
+	reason: z
+		.enum(["duplicate", "fraudulent", "requested_by_customer"])
+		.optional(),
+});
+
+const createPayoutSchema = z.object({
+	vendorId: z.string().uuid("Invalid vendor ID").optional(),
+	amount: z.number().positive("Amount must be positive"),
+	currency: z.string().default("usd"),
+	description: z.string().max(500).optional(),
+	metadata: z.record(z.any()).optional(),
+});
+
 export {
 	registerSchema,
 	loginSchema,
@@ -131,4 +152,7 @@ export {
 	orderItemSchema,
 	createOrderSchema,
 	updateOrderSchema,
+	createPaymentIntentSchema,
+	createRefundSchema,
+	createPayoutSchema,
 };
