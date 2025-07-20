@@ -18,6 +18,7 @@ import {
 	querySchema,
 } from "@/utils/validation";
 import PaymentService from "@/services/payment";
+import OrderRepository from "@/repositories/order";
 
 const payments = new Hono();
 
@@ -32,11 +33,20 @@ payments.post(
 			const user = c.get("user");
 			const data = c.req.valid("json");
 
-			// TODO: Verify user owns the order or is admin
+			const order = await OrderRepository.findById(data.orderId);
+			if (!order) {
+				throw createError.notFound("Order not found");
+			}
 
-			// Get order to calculate amount
-			// This would typically come from your order service
-			const orderAmount = 100; // Placeholder - get from order service
+			if (user.role === "customer" && order.userId !== user.id) {
+				throw createError.forbidden("Access denied to this order");
+			}
+
+			if (user.role === "vendor" && order.vendorId !== user.vendorId) {
+				throw createError.forbidden("Access denied to this order");
+			}
+
+			const orderAmount = order.totalAmount;
 
 			const result = await PaymentService.createPaymentIntent({
 				orderId: data.orderId,
@@ -110,7 +120,18 @@ payments.get(
 			const user = c.get("user");
 			const orderId = c.req.param("orderId");
 
-			// TODO: Verify user has access to this order
+			const order = await OrderRepository.findById(orderId);
+			if (!order) {
+				throw createError.notFound("Order not found");
+			}
+
+			if (user.role === "customer" && order.userId !== user.id) {
+				throw createError.forbidden("You don't own this order");
+			}
+
+			if (user.role === "vendor" && order.vendorId !== user.vendorId) {
+				throw createError.forbidden("You don't own this order");
+			}
 
 			const payments = await PaymentService.getPaymentsByOrder(orderId);
 
