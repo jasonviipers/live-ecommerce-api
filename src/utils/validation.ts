@@ -40,14 +40,14 @@ const changePasswordSchema = z.object({
 });
 
 const querySchema = z.object({
-  page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(20),
-  unreadOnly: z.coerce.boolean().optional(),
+	page: z.coerce.number().min(1).default(1),
+	limit: z.coerce.number().min(1).max(100).default(20),
+	unreadOnly: z.coerce.boolean().optional(),
 });
 
 const markAsReadSchema = z.object({
-  notificationIds: z.array(z.string().uuid()).optional(),
-  markAll: z.boolean().optional(),
+	notificationIds: z.array(z.string().uuid()).optional(),
+	markAll: z.boolean().optional(),
 });
 
 export {
@@ -58,5 +58,5 @@ export {
 	resetPasswordSchema,
 	changePasswordSchema,
 	querySchema,
-	markAsReadSchema
+	markAsReadSchema,
 };

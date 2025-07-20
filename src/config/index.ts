@@ -58,6 +58,18 @@ const envSchema = z.object({
 	RTMP_PING: z.string().default("30").transform(Number),
 	RTMP_PING_TIMEOUT: z.string().default("60").transform(Number),
 
+	// Media Server Configuration
+	MEDIA_HTTP_PORT: z.string().transform(Number).default("8000"),
+	MEDIA_ROOT: z.string().default("./media"),
+	MEDIA_ALLOW_ORIGIN: z.string().default("*"),
+	FFMPEG_PATH: z.string().default("/usr/local/bin/ffmpeg"),
+	FFPROBE_PATH: z.string().default("/usr/local/bin/ffprobe"),
+
+	// Video Processing Configuration
+	TEMP_DIR: z.string().default("./temp"),
+	OUTPUT_DIR: z.string().default("./output"),
+	MAX_CONCURRENT_JOBS: z.string().transform(Number).default("3"),
+
 	// File Upload Configuration
 	MAX_FILE_SIZE: z.string().default("100MB"),
 	ALLOWED_IMAGE_TYPES: z.string().default("jpg,jpeg,png,gif,webp"),
@@ -168,6 +180,29 @@ export const config = {
 		},
 	},
 
+	mediaServer: {
+		http: {
+			port: env.MEDIA_HTTP_PORT,
+			mediaroot: env.MEDIA_ROOT,
+			allowOrigin: env.MEDIA_ALLOW_ORIGIN,
+		},
+		ffmpeg: {
+			path: env.FFMPEG_PATH,
+			probePath: env.FFPROBE_PATH,
+		},
+	},
+
+	videoProcessing: {
+		tempDir: env.TEMP_DIR,
+		outputDir: env.OUTPUT_DIR,
+		maxConcurrentJobs: env.MAX_CONCURRENT_JOBS,
+		qualities: [
+			{ name: "1080p", width: 1920, height: 1080, bitrate: "5000k" },
+			{ name: "720p", width: 1280, height: 720, bitrate: "2500k" },
+			{ name: "480p", width: 854, height: 480, bitrate: "1000k" },
+			{ name: "360p", width: 640, height: 360, bitrate: "500k" },
+		],
+	},
 	upload: {
 		maxFileSize: env.MAX_FILE_SIZE,
 		allowedImageTypes: env.ALLOWED_IMAGE_TYPES.split(","),

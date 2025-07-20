@@ -169,7 +169,7 @@ notifications.post(
 			type: z.enum(["order", "stream", "product", "vendor", "system"]),
 			title: z.string().min(1).max(255),
 			message: z.string().min(1).max(1000),
-			data: z.record(z.string(), z.unknown()).optional()
+			data: z.record(z.string(), z.unknown()).optional(),
 		}),
 	),
 	async (c) => {
