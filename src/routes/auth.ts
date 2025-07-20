@@ -15,6 +15,8 @@ import {
 	loginSchema,
 	forgotPasswordSchema,
 	refreshTokenSchema,
+	resetPasswordSchema,
+	changePasswordSchema,
 } from "@/utils/validation";
 
 const auth = new Hono();
@@ -178,7 +180,7 @@ auth.post("/refresh", zValidator("json", refreshTokenSchema), async (c) => {
 		const decoded = verifyRefreshToken(refreshToken);
 
 		// Verify user still exists and is active
-		const user = await UserRepository.findById(decoded.userId);
+		const user = await UserRepository.findById((await decoded).userId);
 		if (!user || !user.isActive) {
 			throw createError.unauthorized("Invalid refresh token");
 		}
@@ -368,4 +370,5 @@ auth.post(
 		}
 	},
 );
+
 export default auth;

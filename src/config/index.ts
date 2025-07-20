@@ -6,13 +6,13 @@ const envSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "production", "test"])
 		.default("development"),
-	PORT: z.string().transform(Number).default("3000"),
+	PORT: z.string().default("3000").transform(Number),
 	HOST: z.string().default("0.0.0.0"),
 
 	// Database Configuration
 	DATABASE_URL: z.string(),
 	DB_HOST: z.string().default("localhost"),
-	DB_PORT: z.string().transform(Number).default("5432"),
+	DB_PORT: z.string().default("5432").transform(Number),
 	DB_NAME: z.string(),
 	DB_USER: z.string(),
 	DB_PASSWORD: z.string(),
@@ -20,7 +20,7 @@ const envSchema = z.object({
 	// Redis Configuration
 	REDIS_URL: z.string().default("redis://localhost:6379"),
 	REDIS_HOST: z.string().default("localhost"),
-	REDIS_PORT: z.string().transform(Number).default("6379"),
+	REDIS_PORT: z.string().default("6379").transform(Number),
 	REDIS_PASSWORD: z.string().optional(),
 
 	// JWT Configuration
@@ -49,14 +49,14 @@ const envSchema = z.object({
 	FROM_EMAIL: z.string().email(),
 
 	// RTMP Streaming Configuration
-	RTMP_PORT: z.string().transform(Number).default("1935"),
-	RTMP_CHUNK_SIZE: z.string().transform(Number).default("60000"),
+	RTMP_PORT: z.string().default("1935").transform(Number),
+	RTMP_CHUNK_SIZE: z.string().default("60000").transform(Number),
 	RTMP_GOP_CACHE: z
 		.string()
-		.transform((val) => val === "true")
-		.default("true"),
-	RTMP_PING: z.string().transform(Number).default("30"),
-	RTMP_PING_TIMEOUT: z.string().transform(Number).default("60"),
+		.default("true")
+		.transform((val) => val === "true"),
+	RTMP_PING: z.string().default("30").transform(Number),
+	RTMP_PING_TIMEOUT: z.string().default("60").transform(Number),
 
 	// File Upload Configuration
 	MAX_FILE_SIZE: z.string().default("100MB"),
@@ -64,8 +64,8 @@ const envSchema = z.object({
 	ALLOWED_VIDEO_TYPES: z.string().default("mp4,avi,mov,wmv,flv,webm"),
 
 	// Rate Limiting
-	RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default("900000"),
-	RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default("100"),
+	RATE_LIMIT_WINDOW_MS: z.string().default("900000").transform(Number),
+	RATE_LIMIT_MAX_REQUESTS: z.string().default("100").transform(Number),
 
 	// CORS Configuration
 	CORS_ORIGIN: z
@@ -73,16 +73,16 @@ const envSchema = z.object({
 		.default("http://localhost:3001,http://localhost:3000"),
 	CORS_CREDENTIALS: z
 		.string()
-		.transform((val) => val === "true")
-		.default("true"),
+		.default("true")
+		.transform((val) => val === "true"),
 
 	// Analytics Configuration
-	ANALYTICS_RETENTION_DAYS: z.string().transform(Number).default("90"),
-	ANALYTICS_BATCH_SIZE: z.string().transform(Number).default("1000"),
+	ANALYTICS_RETENTION_DAYS: z.string().default("90").transform(Number),
+	ANALYTICS_BATCH_SIZE: z.string().default("1000").transform(Number),
 
 	// Commission Configuration
-	DEFAULT_COMMISSION_RATE: z.string().transform(Number).default("0.05"),
-	PLATFORM_FEE_RATE: z.string().transform(Number).default("0.02"),
+	DEFAULT_COMMISSION_RATE: z.string().default("0.05").transform(Number),
+	PLATFORM_FEE_RATE: z.string().default("0.02").transform(Number),
 });
 
 // Validate environment variables

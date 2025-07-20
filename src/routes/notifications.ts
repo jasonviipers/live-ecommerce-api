@@ -6,6 +6,7 @@ import { logger } from "@/config/logger";
 import { markAsReadSchema, querySchema } from "@/utils/validation";
 import { NotificationService } from "@/services/notification";
 import * as z from "zod";
+import { config } from "@/config";
 
 const notifications = new Hono();
 
@@ -42,7 +43,7 @@ notifications.get(
 			});
 		} catch (error) {
 			logger.error("Failed to get notifications", error as Error);
-			throw createError.internalServerError("Failed to retrieve notifications");
+			throw createError.internal("Failed to retrieve notifications");
 		}
 	},
 );
@@ -71,7 +72,7 @@ notifications.get(
 			});
 		} catch (error) {
 			logger.error("Failed to get unread count", error as Error);
-			throw createError.internalServerError("Failed to retrieve unread count");
+			throw createError.internal("Failed to retrieve unread count");
 		}
 	},
 );
@@ -168,13 +169,13 @@ notifications.post(
 			type: z.enum(["order", "stream", "product", "vendor", "system"]),
 			title: z.string().min(1).max(255),
 			message: z.string().min(1).max(1000),
-			data: z.record(z.any()).optional(),
+			data: z.record(z.string(), z.unknown()).optional()
 		}),
 	),
 	async (c) => {
 		try {
 			// Only allow in development environment
-			if (process.env.NODE_ENV === "production") {
+			if (config.server.nodeEnv === "production") {
 				throw createError.forbidden(
 					"Test notifications not allowed in production",
 				);

@@ -40,9 +40,9 @@ const changePasswordSchema = z.object({
 });
 
 const querySchema = z.object({
-  page: z.string().transform(val => parseInt(val) || 1),
-  limit: z.string().transform(val => Math.min(parseInt(val) || 20, 100)),
-  unreadOnly: z.string().transform(val => val === 'true').optional(),
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
+  unreadOnly: z.coerce.boolean().optional(),
 });
 
 const markAsReadSchema = z.object({
