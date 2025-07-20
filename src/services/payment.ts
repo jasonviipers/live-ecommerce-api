@@ -3,7 +3,6 @@ import { query, withTransaction } from "@/database/connection";
 import { PoolClient } from "pg";
 import { config } from "@/config";
 import logger from "@/config/logger";
-import NotificationService from "./notification";
 import { getSocketManager } from "@/config/socket";
 import type {
 	CreatePaymentIntentData,
@@ -11,13 +10,13 @@ import type {
 	Payment,
 	Payout,
 } from "@/types";
+import { NotificationService } from "./notification";
 
 export class PaymentService {
 	private static stripe = new Stripe(config.stripe.secretKey, {
 		apiVersion: "2025-06-30.basil",
 	});
 
-	// Create payment intent for order
 	static async createPaymentIntent(data: CreatePaymentIntentData): Promise<{
 		payment: Payment;
 		clientSecret: string;
@@ -90,7 +89,6 @@ export class PaymentService {
 		});
 	}
 
-	// Confirm payment (webhook handler)
 	static async confirmPayment(
 		paymentIntentId: string,
 	): Promise<Payment | null> {
@@ -111,21 +109,27 @@ export class PaymentService {
 				const payment = paymentResult.rows[0];
 
 				// Get payment intent from Stripe
-				const paymentIntent =
-					await this.stripe.paymentIntents.retrieve(paymentIntentId);
+				const paymentIntent = await this.stripe.paymentIntents.retrieve(
+					paymentIntentId,
+					{ expand: ["charges"] },
+				);
 
-				// Update payment status
+				let chargeId: string | null = null;
+				if (paymentIntent.latest_charge) {
+					const charge = await this.stripe.charges.retrieve(
+						paymentIntent.latest_charge as string,
+					);
+					chargeId = charge.id;
+				}
 				const updateSql = `
-          UPDATE payments 
-          SET status = $1, stripe_charge_id = $2, updated_at = CURRENT_TIMESTAMP
-          WHERE id = $3
-          RETURNING *
-        `;
+						UPDATE payments 
+						SET status = $1, stripe_charge_id = $2, updated_at = CURRENT_TIMESTAMP
+						WHERE id = $3
+						RETURNING *
+					`;
 
 				const status =
 					paymentIntent.status === "succeeded" ? "succeeded" : "failed";
-				const chargeId = paymentIntent.charges.data[0]?.id;
-
 				const updateResult = await client.query(updateSql, [
 					status,
 					chargeId,
@@ -261,7 +265,6 @@ export class PaymentService {
 		});
 	}
 
-	// Create payout to vendor
 	static async createPayout(data: CreatePayoutData): Promise<Payout> {
 		return withTransaction(async (client: PoolClient) => {
 			try {
@@ -281,12 +284,12 @@ export class PaymentService {
 
 				// Create payout record first
 				const payoutSql = `
-          INSERT INTO payouts (
-            vendor_id, amount, currency, status, description, metadata
-          )
-          VALUES ($1, $2, $3, $4, $5, $6)
-          RETURNING *
-        `;
+							INSERT INTO payouts (
+								vendor_id, amount, currency, status, description, metadata
+							)
+							VALUES ($1, $2, $3, $4, $5, $6)
+							RETURNING *
+					`;
 
 				const payoutValues = [
 					data.vendorId,
@@ -319,11 +322,11 @@ export class PaymentService {
 
 				// Update payout with Stripe payout ID
 				const updateSql = `
-          UPDATE payouts 
-          SET stripe_payout_id = $1, status = $2, updated_at = CURRENT_TIMESTAMP
-          WHERE id = $3
-          RETURNING *
-        `;
+						UPDATE payouts 
+						SET stripe_payout_id = $1, status = $2, updated_at = CURRENT_TIMESTAMP
+						WHERE id = $3
+						RETURNING *
+					`;
 
 				const updateResult = await client.query(updateSql, [
 					stripePayout.id,

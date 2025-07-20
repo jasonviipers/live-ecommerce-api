@@ -412,7 +412,7 @@ export interface CreatePayoutData {
 export interface Notification {
 	id: string;
 	userId: string;
-	type: "order" | "stream" | "product" | "vendor" | "system";
+	type: "order" | "stream" | "product" | "vendor" | "system" | "payout";
 	title: string;
 	message: string;
 	data?: any;
