@@ -428,3 +428,44 @@ export interface CreateNotificationData {
 	message: string;
 	data?: any;
 }
+
+export interface MediaFile {
+	id: string;
+	userId: string;
+	filename: string;
+	originalName: string;
+	mimeType: string;
+	size: number;
+	url: string;
+	r2Key?: string;
+	thumbnailUrl?: string;
+	metadata?: any;
+	status: "uploading" | "processing" | "ready" | "failed";
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+export interface UploadOptions {
+	userId: string;
+	file: {
+		buffer: Buffer;
+		originalname: string;
+		mimetype: string;
+		size: number;
+	};
+	folder?: string;
+	generateThumbnail?: boolean;
+	processVideo?: boolean;
+	uploadToR2?: boolean;
+	maxWidth?: number;
+	maxHeight?: number;
+	quality?: number;
+}
+
+export interface ProcessingResult {
+	success: boolean;
+	processedUrl?: string;
+	thumbnailUrl?: string;
+	metadata?: any;
+	error?: string;
+}
