@@ -114,6 +114,36 @@ const querySchema = z.object({
 	vendorId: z.string().uuid().optional(),
 	dateFrom: z.string().datetime().optional(),
 	dateTo: z.string().datetime().optional(),
+	categoryId: z.string().uuid().optional(),
+	isActive: z
+		.string()
+		.transform((val) =>
+			val === "true" ? true : val === "false" ? false : undefined,
+		)
+		.optional(),
+	isFeatured: z
+		.string()
+		.transform((val) =>
+			val === "true" ? true : val === "false" ? false : undefined,
+		)
+		.optional(),
+	search: z.string().optional(),
+	tags: z
+		.string()
+		.transform((val) => (val ? val.split(",") : undefined))
+		.optional(),
+	priceMin: z
+		.string()
+		.transform((val) => (val ? parseFloat(val) : undefined))
+		.optional(),
+	priceMax: z
+		.string()
+		.transform((val) => (val ? parseFloat(val) : undefined))
+		.optional(),
+	sortBy: z
+		.enum(["created_at", "price", "name", "view_count", "like_count"])
+		.default("created_at"),
+	sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 
 const createPaymentIntentSchema = z.object({
@@ -137,6 +167,39 @@ const createPayoutSchema = z.object({
 	metadata: z.record(z.any()).optional(),
 });
 
+const createProductSchema = z.object({
+	categoryId: z.string().uuid().optional(),
+	name: z.string().min(1, "Product name is required").max(255),
+	description: z.string().optional(),
+	shortDescription: z.string().max(500).optional(),
+	sku: z.string().max(100).optional(),
+	price: z.number().min(0, "Price must be non-negative"),
+	comparePrice: z.number().min(0).optional(),
+	costPrice: z.number().min(0).optional(),
+	trackInventory: z.boolean().default(true),
+	inventoryQuantity: z.number().int().min(0).default(0),
+	lowStockThreshold: z.number().int().min(0).default(10),
+	weight: z.number().min(0).optional(),
+	dimensions: z
+		.object({
+			length: z.number().min(0),
+			width: z.number().min(0),
+			height: z.number().min(0),
+			unit: z.enum(["cm", "in"]).default("cm"),
+		})
+		.optional(),
+	images: z.array(z.string().url()).default([]),
+	tags: z.array(z.string()).default([]),
+	metaTitle: z.string().max(255).optional(),
+	metaDescription: z.string().max(500).optional(),
+	isDigital: z.boolean().default(false),
+});
+
+const updateProductSchema = createProductSchema.partial().extend({
+	isActive: z.boolean().optional(),
+	isFeatured: z.boolean().optional(),
+});
+
 export {
 	registerSchema,
 	loginSchema,
@@ -155,4 +218,6 @@ export {
 	createPaymentIntentSchema,
 	createRefundSchema,
 	createPayoutSchema,
+	createProductSchema,
+	updateProductSchema,
 };
