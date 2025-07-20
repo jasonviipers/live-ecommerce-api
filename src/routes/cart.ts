@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, Context } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { authMiddleware, optionalAuthMiddleware } from "../middleware/auth";
 import { createError } from "../middleware/errorHandler";
@@ -7,8 +7,35 @@ import CartRepository from "@/repositories/cart";
 import { addItemSchema, updateItemSchema } from "@/utils/validation";
 import ProductRepository from "@/repositories/product";
 import { z } from "zod";
+import { User } from "@/types";
 
 const cart = new Hono();
+
+async function verifyCartItemOwnership(
+	c: Context,
+	itemId: string,
+): Promise<{ cartId: string }> {
+	const user = c.get("user") as User | undefined;
+	let cartId: string;
+
+	if (user) {
+		const userCart = await CartRepository.getOrCreateForUser(user.id);
+		cartId = userCart.id;
+	} else {
+		const sessionId = c.req.header("x-session-id") || "anonymous";
+		const sessionCart = await CartRepository.getOrCreateForSession(sessionId);
+		cartId = sessionCart.id;
+	}
+
+	const cartItems = await CartRepository.getCartItems(cartId);
+	const itemExists = cartItems.some((item) => item.id === itemId);
+
+	if (!itemExists) {
+		throw createError.forbidden("Cart item does not belong to your cart");
+	}
+
+	return { cartId };
+}
 
 cart.get("/", optionalAuthMiddleware, async (c) => {
 	try {
@@ -16,7 +43,6 @@ cart.get("/", optionalAuthMiddleware, async (c) => {
 		let cartSummary;
 
 		if (user) {
-			// Get user cart
 			const userCart = await CartRepository.getOrCreateForUser(user.id);
 			cartSummary = await CartRepository.getCartSummary(userCart.id);
 		} else {
@@ -108,7 +134,7 @@ cart.put(
 			const itemId = c.req.param("itemId");
 			const { quantity } = c.req.valid("json");
 
-			// TODO: Verify item belongs to user's cart
+			await verifyCartItemOwnership(c, itemId);
 
 			const cartItem = await CartRepository.updateItemQuantity(
 				itemId,
@@ -144,7 +170,7 @@ cart.delete("/items/:itemId", optionalAuthMiddleware, async (c) => {
 		const user = c.get("user");
 		const itemId = c.req.param("itemId");
 
-		// TODO: Verify item belongs to user's cart
+		await verifyCartItemOwnership(c, itemId);
 
 		const removed = await CartRepository.removeItem(itemId);
 
