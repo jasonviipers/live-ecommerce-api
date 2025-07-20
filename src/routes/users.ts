@@ -3,10 +3,10 @@ import { authMiddleware, requireAdmin } from "../middleware/auth";
 import { UserRepository } from "@/repositories/user";
 import { createError } from "@/middleware/errorHandler";
 
-const users = new Hono();
+const userRoutes = new Hono();
 
 // Get all users (admin only)
-users.get("/", authMiddleware, requireAdmin, async (c) => {
+userRoutes.get("/", authMiddleware, requireAdmin, async (c) => {
 	const { page, limit, role, isActive, search } = c.req.query();
 
 	const result = await UserRepository.findAll(
@@ -28,7 +28,7 @@ users.get("/", authMiddleware, requireAdmin, async (c) => {
 });
 
 // Get user by ID
-users.get("/:id", authMiddleware, async (c) => {
+userRoutes.get("/:id", authMiddleware, async (c) => {
 	const id = c.req.param("id");
 	const currentUser = c.get("user");
 
@@ -45,7 +45,7 @@ users.get("/:id", authMiddleware, async (c) => {
 });
 
 // Update user
-users.put("/:id", authMiddleware, async (c) => {
+userRoutes.put("/:id", authMiddleware, async (c) => {
 	const id = c.req.param("id");
 	const currentUser = c.get("user");
 	const updateData = await c.req.json();
@@ -71,7 +71,7 @@ users.put("/:id", authMiddleware, async (c) => {
 });
 
 // Delete user (admin only)
-users.delete("/:id", authMiddleware, requireAdmin, async (c) => {
+userRoutes.delete("/:id", authMiddleware, requireAdmin, async (c) => {
 	const id = c.req.param("id");
 
 	const currentUser = c.get("user");
@@ -87,4 +87,4 @@ users.delete("/:id", authMiddleware, requireAdmin, async (c) => {
 	return c.json({ message: "User deactivated successfully" });
 });
 
-export default users;
+export default userRoutes;

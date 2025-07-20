@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { logger as honoLogger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { secureHeaders } from "hono/secure-headers";
+import { fire } from "hono/service-worker";
 
 // Configuration and utilities
 import { config } from "./config";
@@ -24,6 +25,7 @@ import {
 
 // Import routes
 import authRoutes from "./routes/auth";
+import userRoutes from "./routes/users";
 
 const app = new Hono();
 
@@ -69,7 +71,7 @@ app.get("/health", async (c) => {
 });
 
 app.route("/api/auth", authRoutes);
-// app.route('/api/users', userRoutes);
+app.route("/api/users", userRoutes);
 // app.route('/api/vendors', vendorRoutes);
 // app.route('/api/products', productRoutes);
 // app.route('/api/orders', orderRoutes);
@@ -95,8 +97,36 @@ app.notFound((c) => {
 
 app.onError(errorHandler);
 
-app.get("/", (c) => {
-	return c.text("Hello Hono!");
-});
+const startServer = async () => {
+	try {
+		logger.info("🚀 Starting Live Streaming E-commerce API Server...");
 
+		// Initialize database connections
+		logger.info("📊 Initializing database connections...");
+		// await initializeDatabase();
+		// await initializeRedis();
+
+		fire(app);
+	} catch (error) {
+		logger.error("Failed to start server", error as Error);
+		process.exit(1);
+	}
+};
+
+const shutdownServer = async (signal: string) => {
+	try {
+		await closeDatabase();
+		await closeRedis();
+		logger.info("✅ Graceful shutdown completed");
+		process.exit(0);
+	} catch (error) {
+		logger.error("❌ Error during graceful shutdown", error as Error);
+		process.exit(1);
+	}
+};
+
+process.on("SIGTERM", () => shutdownServer("SIGTERM"));
+process.on("SIGINT", () => shutdownServer("SIGINT"));
+
+startServer();
 export default app;
