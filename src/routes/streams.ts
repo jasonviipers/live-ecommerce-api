@@ -16,6 +16,7 @@ import {
 } from "@/utils/validation";
 import StreamRepository from "@/repositories/stream";
 import { UpdateStreamData } from "@/types";
+import { withTransaction } from "@/database/connection";
 
 const streams = new Hono();
 
@@ -375,16 +376,14 @@ streams.post("/:id/like", authMiddleware, requireAuthenticated, async (c) => {
 		const id = c.req.param("id");
 
 		const alreadyLiked = await StreamRepository.hasUserLikedStream(id, user.id);
-		if (alreadyLiked) {
+		if (!alreadyLiked) {
 			throw createError.badRequest("You already liked this stream");
 		}
 
-		await StreamRepository.recordUserLike(id, user.id);
-		const updated = await StreamRepository.incrementLikeCount(id);
-
-		if (!updated) {
-			throw createError.notFound("Stream not found");
-		}
+		await withTransaction(async (client) => {
+			await StreamRepository.incrementLikeCount(id, client);
+			await StreamRepository.recordUserLike(id, user.id, client);
+		});
 
 		logger.info("Stream liked", {
 			streamId: id,

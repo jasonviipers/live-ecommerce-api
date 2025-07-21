@@ -282,10 +282,16 @@ export class StreamRepository {
 	}
 
 	// Increment like count
-	static async incrementLikeCount(id: string): Promise<boolean> {
-		const sql = "UPDATE streams SET like_count = like_count + 1 WHERE id = $1";
-		const result = await query(sql, [id]);
-		return result.rowCount > 0;
+	static async incrementLikeCount(
+		streamId: string,
+		client: PoolClient | null = null,
+	): Promise<boolean> {
+		const queryFn = client ? client.query.bind(client) : query;
+		await queryFn(
+			"UPDATE streams SET like_count = like_count + 1 WHERE id = $1",
+			[streamId],
+		);
+		return true;
 	}
 
 	// Increment share count
@@ -374,13 +380,16 @@ export class StreamRepository {
 		return result.rowCount > 0;
 	}
 
-	static async recordUserLike(streamId: string, userId: string): Promise<void> {
-		const sql = `
-        INSERT INTO likes (user_id, likeable_type, likeable_id)
-        VALUES ($1, 'stream', $2)
-        ON CONFLICT DO NOTHING
-    `;
-		await query(sql, [userId, streamId]);
+	static async recordUserLike(
+		streamId: string,
+		userId: string,
+		client: PoolClient | null = null,
+	): Promise<void> {
+		const queryFn = client ? client.query.bind(client) : query;
+		await queryFn(
+			"INSERT INTO stream_likes (user_id, stream_id) VALUES ($1, $2)",
+			[userId, streamId],
+		);
 	}
 
 	// Helper method to map database row to Stream object

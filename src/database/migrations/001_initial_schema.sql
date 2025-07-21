@@ -680,7 +680,3 @@ CREATE TRIGGER update_r2_bucket_stats_updated_at
     BEFORE UPDATE ON r2_bucket_stats
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
-
-INSERT INTO r2_bucket_stats (bucket, total_files, total_size_bytes)
-VALUES ('default-bucket-name', 0, 0)
-ON CONFLICT (bucket) DO NOTHING;
