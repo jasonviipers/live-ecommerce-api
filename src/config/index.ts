@@ -40,6 +40,8 @@ const envSchema = z.object({
 	CLOUDFLARE_R2_SECRET_ACCESS_KEY: z.string(),
 	CLOUDFLARE_R2_BUCKET_NAME: z.string(),
 	CLOUDFLARE_R2_ENDPOINT: z.string().url(),
+	CLOUDFLARE_PUBLIC_DOMAIN: z.string().optional(),
+	CLOUDFLARE_REGION: z.string().default("auto"),
 
 	// Email Configuration
 	SMTP_HOST: z.string(),
@@ -154,6 +156,8 @@ export const config = {
 			secretAccessKey: env.CLOUDFLARE_R2_SECRET_ACCESS_KEY,
 			bucketName: env.CLOUDFLARE_R2_BUCKET_NAME,
 			endpoint: env.CLOUDFLARE_R2_ENDPOINT,
+			publicDomain: env.CLOUDFLARE_PUBLIC_DOMAIN,
+			region: env.CLOUDFLARE_REGION,
 		},
 	},
 

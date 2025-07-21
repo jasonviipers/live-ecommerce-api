@@ -533,8 +533,8 @@ export const getR2Service = (): CloudflareR2Service => {
 			accessKeyId: config.cloudflare.r2.accessKeyId,
 			secretAccessKey: config.cloudflare.r2.secretAccessKey,
 			bucketName: config.cloudflare.r2.bucketName,
-			//TODO:   publicDomain: config.cloudflare.r2.publicDomain,
-			//TODO:    region: config.cloudflare.r2.region,
+			publicDomain: config.cloudflare.r2.publicDomain,
+			region: config.cloudflare.r2.region,
 		});
 	}
 
