@@ -7,7 +7,6 @@ import {
 	StreamAnalytics,
 	TrackEventData,
 	VendorAnalytics,
-	Tuple,
 	RealTimeMetrics,
 } from "@/types";
 import { getRedisClient } from "@/database/redis";

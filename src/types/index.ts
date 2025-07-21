@@ -551,7 +551,10 @@ export interface VendorAnalytics {
 	recentStreams: StreamAnalytics[];
 }
 
-export type Tuple = [Error?, string?];
+export type ErrorResult = [
+	error: Error | undefined,
+	message: string | undefined,
+];
 
 export interface RealTimeMetrics {
 	activeUsers: number;

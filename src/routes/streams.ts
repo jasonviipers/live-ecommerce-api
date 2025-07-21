@@ -376,7 +376,7 @@ streams.post("/:id/like", authMiddleware, requireAuthenticated, async (c) => {
 		const id = c.req.param("id");
 
 		const alreadyLiked = await StreamRepository.hasUserLikedStream(id, user.id);
-		if (!alreadyLiked) {
+		if (alreadyLiked) {
 			throw createError.badRequest("You already liked this stream");
 		}
 

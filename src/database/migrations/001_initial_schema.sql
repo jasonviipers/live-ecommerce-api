@@ -419,7 +419,7 @@ CREATE TRIGGER update_payouts_updated_at BEFORE UPDATE ON payouts FOR EACH ROW E
 
 -- Add media_files table
 CREATE TABLE IF NOT EXISTS media_files (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   filename VARCHAR(255) NOT NULL,
   original_name VARCHAR(255) NOT NULL,
