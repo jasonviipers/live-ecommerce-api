@@ -15,6 +15,7 @@ import {
 	updateStreamSchema,
 } from "@/utils/validation";
 import StreamRepository from "@/repositories/stream";
+import { UpdateStreamData } from "@/types";
 
 const streams = new Hono();
 
@@ -214,7 +215,10 @@ streams.put(
 			}
 
 			// Convert date string to Date object
-			const updateData: any = { ...data };
+			const updateData: UpdateStreamData = {
+				...data,
+				scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined,
+			};
 			if (updateData.scheduledAt) {
 				updateData.scheduledAt = new Date(updateData.scheduledAt);
 			}
