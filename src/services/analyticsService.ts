@@ -7,7 +7,6 @@ import {
 	StreamAnalytics,
 	TrackEventData,
 	VendorAnalytics,
-	Tuple,
 	RealTimeMetrics,
 } from "@/types";
 import { getRedisClient } from "@/database/redis";
@@ -42,10 +41,10 @@ export class AnalyticsService {
 			];
 
 			const result = await query(sql, values);
-			const event = this.mapRowToAnalyticsEvent(result.rows[0]);
+			const event = AnalyticsService.mapRowToAnalyticsEvent(result.rows[0]);
 
 			// Cache real-time metrics in Redis
-			await this.updateRealTimeMetrics(event);
+			await AnalyticsService.updateRealTimeMetrics(event);
 
 			return event;
 		} catch (error) {
@@ -60,7 +59,7 @@ export class AnalyticsService {
 		dateTo?: Date,
 	): Promise<AnalyticsMetrics> {
 		try {
-			const dateFilter = this.buildDateFilter(dateFrom, dateTo);
+			const dateFilter = AnalyticsService.buildDateFilter(dateFrom, dateTo);
 
 			// Total and active users
 			const usersSql = `
@@ -150,7 +149,11 @@ export class AnalyticsService {
 		dateTo?: Date,
 	): Promise<StreamAnalytics> {
 		try {
-			const dateFilter = this.buildDateFilter(dateFrom, dateTo, "ae.");
+			const dateFilter = AnalyticsService.buildDateFilter(
+				dateFrom,
+				dateTo,
+				"ae.",
+			);
 
 			const sql = `
         SELECT 
@@ -203,7 +206,11 @@ export class AnalyticsService {
 		dateTo?: Date,
 	): Promise<ProductAnalytics> {
 		try {
-			const dateFilter = this.buildDateFilter(dateFrom, dateTo, "ae.");
+			const dateFilter = AnalyticsService.buildDateFilter(
+				dateFrom,
+				dateTo,
+				"ae.",
+			);
 
 			const sql = `
         SELECT 
@@ -265,7 +272,7 @@ export class AnalyticsService {
 		dateTo?: Date,
 	): Promise<VendorAnalytics> {
 		try {
-			const dateFilter = this.buildDateFilter(dateFrom, dateTo);
+			const dateFilter = AnalyticsService.buildDateFilter(dateFrom, dateTo);
 
 			// Basic vendor metrics
 			const vendorSql = `
