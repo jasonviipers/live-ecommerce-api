@@ -322,9 +322,15 @@ videoRoutes.post(
 			const user = c.get("user");
 			const id = c.req.param("id");
 
-			// TODO: Check if user already liked this video
-			// TODO: Store user likes in database
+			const alreadyLiked = await VideoRepository.hasUserLikedVideo(id, user.id);
+			if (alreadyLiked) {
+				return c.json({
+					success: true,
+					message: "You have already liked this video",
+				});
+			}
 
+			await VideoRepository.recordUserLike(id, user.id);
 			const updated = await VideoRepository.incrementLikeCount(id);
 
 			if (!updated) {
