@@ -360,6 +360,29 @@ export class StreamRepository {
 		});
 	}
 
+	static async hasUserLikedStream(
+		streamId: string,
+		userId: string,
+	): Promise<boolean> {
+		const sql = `
+        SELECT 1 FROM likes 
+        WHERE likeable_type = 'stream' 
+        AND likeable_id = $1 
+        AND user_id = $2
+    `;
+		const result = await query(sql, [streamId, userId]);
+		return result.rowCount > 0;
+	}
+
+	static async recordUserLike(streamId: string, userId: string): Promise<void> {
+		const sql = `
+        INSERT INTO likes (user_id, likeable_type, likeable_id)
+        VALUES ($1, 'stream', $2)
+        ON CONFLICT DO NOTHING
+    `;
+		await query(sql, [userId, streamId]);
+	}
+
 	// Helper method to map database row to Stream object
 	private static mapRowToStream(row: any): Stream {
 		return {
