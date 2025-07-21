@@ -8,6 +8,7 @@ import { logger } from "@/config/logger";
 import { querySchema, uploadOptionsSchema } from "@/utils/validation";
 import MediaService from "@/services/mediaService";
 import ProductRepository from "@/repositories/product";
+import { UserRepository } from "@/repositories/user";
 
 const uploads = new Hono();
 
@@ -317,8 +318,7 @@ uploads.post("/avatar", authMiddleware, requireAuthenticated, async (c) => {
 						quality: 85,
 					});
 
-					// TODO: Update user avatar URL in database
-					// await UserRepository.updateAvatar(user.id, mediaFile.url);
+					await UserRepository.update(user.id, { avatarUrl: mediaFile.url });
 
 					logger.info("Avatar uploaded successfully", {
 						mediaId: mediaFile.id,
