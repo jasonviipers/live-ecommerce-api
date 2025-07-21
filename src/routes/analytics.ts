@@ -16,6 +16,8 @@ import {
 } from "@/utils/validation";
 import AnalyticsService from "@/services/analyticsService";
 import { AnalyticsMetrics, RealTimeMetrics, VendorAnalytics } from "@/types";
+import StreamRepository from "@/repositories/stream";
+import ProductRepository from "@/repositories/product";
 
 interface IDashboardData {
 	general?: AnalyticsMetrics;
@@ -143,7 +145,13 @@ analyticsRoutes.get(
 			const streamId = c.req.param("streamId");
 			const query = c.req.valid("query");
 
-			// TODO: Verify user has access to this stream (vendor ownership or admin)
+			const stream = await StreamRepository.findById(streamId);
+			if (!stream) {
+				throw createError.notFound("Stream not found");
+			}
+			if (user.role !== "admin" && stream.vendorId !== user.vendorId) {
+				throw createError.forbidden("Access denied to this stream's analytics");
+			}
 
 			const analytics = await AnalyticsService.getStreamAnalytics(
 				streamId,
@@ -174,7 +182,15 @@ analyticsRoutes.get(
 			const productId = c.req.param("productId");
 			const query = c.req.valid("query");
 
-			// TODO: Verify user has access to this product (vendor ownership or admin)
+			const product = await ProductRepository.findById(productId);
+			if (!product) {
+				throw createError.notFound("Product not found");
+			}
+			if (user.role !== "admin" && product.vendorId !== user.vendorId) {
+				throw createError.forbidden(
+					"Access denied to this product's analytics",
+				);
+			}
 
 			const analytics = await AnalyticsService.getProductAnalytics(
 				productId,
