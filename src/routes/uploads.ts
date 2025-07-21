@@ -7,6 +7,7 @@ import { createError } from "@/middleware/errorHandler";
 import { logger } from "@/config/logger";
 import { querySchema, uploadOptionsSchema } from "@/utils/validation";
 import MediaService from "@/services/mediaService";
+import ProductRepository from "@/repositories/product";
 
 const uploads = new Hono();
 
@@ -360,7 +361,15 @@ uploads.post(
 			const user = c.get("user");
 			const productId = c.req.param("productId");
 
-			// TODO: Verify user owns the product or is admin
+			const product = await ProductRepository.findById(productId);
+			if (!product) {
+				throw createError.notFound("Product not found");
+			}
+			if (user.role !== "admin" && product.vendorId !== user.vendorId) {
+				throw createError.forbidden(
+					"You do not have permission to upload images for this product",
+				);
+			}
 
 			const uploadMiddleware = upload.array("images", 5);
 
@@ -406,8 +415,10 @@ uploads.post(
 
 						const mediaFiles = await Promise.all(uploadPromises);
 
-						// TODO: Associate images with product in database
-						// await ProductRepository.addImages(productId, mediaFiles.map(f => f.url));
+						// Associate images with product in database
+						const newImageUrls = mediaFiles.map(f => f.url);
+						const updatedImages = [...(product.images || []), ...newImageUrls];
+						await ProductRepository.update(productId, { images: updatedImages });
 
 						logger.info("Product images uploaded successfully", {
 							productId,
