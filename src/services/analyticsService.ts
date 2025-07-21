@@ -367,7 +367,7 @@ export class AnalyticsService {
 			const recentStreams: StreamAnalytics[] = [];
 
 			for (const row of recentStreamsResult.rows) {
-				const streamAnalytics = await this.getStreamAnalytics(
+				const streamAnalytics = await AnalyticsService.getStreamAnalytics(
 					row.id,
 					dateFrom,
 					dateTo,
