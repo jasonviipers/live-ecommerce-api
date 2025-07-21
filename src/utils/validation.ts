@@ -115,6 +115,7 @@ const querySchema = z.object({
 	dateFrom: z.string().datetime().optional(),
 	dateTo: z.string().datetime().optional(),
 	categoryId: z.string().uuid().optional(),
+	type: z.enum(["image", "video", "all"]).default("all"),
 	isActive: z
 		.string()
 		.transform((val) =>
@@ -141,9 +142,21 @@ const querySchema = z.object({
 		.transform((val) => (val ? parseFloat(val) : undefined))
 		.optional(),
 	sortBy: z
-		.enum(["created_at", "price", "name", "view_count", "like_count"])
+		.enum(["created_at", "price", "name", "view_count", "like_count", "title"])
 		.default("created_at"),
 	sortOrder: z.enum(["asc", "desc"]).default("desc"),
+	isLive: z
+		.string()
+		.transform((val) =>
+			val === "true" ? true : val === "false" ? false : undefined,
+		)
+		.optional(),
+	isPublic: z
+		.string()
+		.transform((val) =>
+			val === "true" ? true : val === "false" ? false : undefined,
+		)
+		.optional(),
 });
 
 const createPaymentIntentSchema = z.object({
@@ -200,6 +213,81 @@ const updateProductSchema = createProductSchema.partial().extend({
 	isFeatured: z.boolean().optional(),
 });
 
+const createStreamSchema = z.object({
+	title: z.string().min(1, "Stream title is required").max(255),
+	description: z.string().max(1000).optional(),
+	thumbnailUrl: z.string().url().optional(),
+	scheduledAt: z.string().datetime().optional(),
+	isRecorded: z.boolean().default(false),
+	tags: z.array(z.string()).default([]),
+	metadata: z.record(z.any()).optional(),
+});
+
+const updateStreamSchema = createStreamSchema.partial().extend({
+	status: z.enum(["scheduled", "live", "ended", "cancelled"]).optional(),
+});
+
+const uploadOptionsSchema = z.object({
+	folder: z.string().optional(),
+	generateThumbnail: z
+		.string()
+		.transform((val) => val === "true")
+		.optional(),
+	processVideo: z
+		.string()
+		.transform((val) => val === "true")
+		.optional(),
+	maxWidth: z
+		.string()
+		.transform((val) => parseInt(val))
+		.optional(),
+	maxHeight: z
+		.string()
+		.transform((val) => parseInt(val))
+		.optional(),
+	quality: z
+		.string()
+		.transform((val) => parseInt(val))
+		.optional(),
+});
+
+const createVideoSchema = z.object({
+	title: z.string().min(1, "Video title is required").max(255),
+	description: z.string().max(1000).optional(),
+	videoUrl: z.string().url("Invalid video URL"),
+	thumbnailUrl: z.string().url().optional(),
+	duration: z.number().min(0, "Duration must be non-negative"),
+	fileSize: z.number().min(0, "File size must be non-negative"),
+	resolution: z.string().min(1, "Resolution is required"),
+	format: z.string().min(1, "Format is required"),
+	isPublic: z.boolean().default(true),
+	tags: z.array(z.string()).default([]),
+	metadata: z.record(z.any()).optional(),
+});
+
+const updateVideoSchema = createVideoSchema.partial().extend({
+	status: z.enum(["processing", "ready", "failed"]).optional(),
+});
+
+const trackEventSchema = z.object({
+	eventType: z.string().min(1, "Event type is required"),
+	eventCategory: z.string().min(1, "Event category is required"),
+	eventAction: z.string().min(1, "Event action is required"),
+	eventLabel: z.string().optional(),
+	eventValue: z.number().optional(),
+	properties: z.record(z.any()).optional(),
+	sessionId: z.string().optional(),
+});
+
+const dateRangeSchema = z.object({
+	dateFrom: z.string().datetime().optional(),
+	dateTo: z.string().datetime().optional(),
+});
+
+const vendorAnalyticsSchema = dateRangeSchema.extend({
+	vendorId: z.string().uuid().optional(),
+});
+
 export {
 	registerSchema,
 	loginSchema,
@@ -220,4 +308,12 @@ export {
 	createPayoutSchema,
 	createProductSchema,
 	updateProductSchema,
+	createStreamSchema,
+	updateStreamSchema,
+	uploadOptionsSchema,
+	createVideoSchema,
+	updateVideoSchema,
+	trackEventSchema,
+	vendorAnalyticsSchema,
+	dateRangeSchema,
 };

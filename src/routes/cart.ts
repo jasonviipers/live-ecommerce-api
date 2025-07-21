@@ -9,7 +9,7 @@ import ProductRepository from "@/repositories/product";
 import { z } from "zod";
 import { User } from "@/types";
 
-const cart = new Hono();
+const cartRoutes = new Hono();
 
 async function verifyCartItemOwnership(
 	c: Context,
@@ -37,7 +37,7 @@ async function verifyCartItemOwnership(
 	return { cartId };
 }
 
-cart.get("/", optionalAuthMiddleware, async (c) => {
+cartRoutes.get("/", optionalAuthMiddleware, async (c) => {
 	try {
 		const user = c.get("user");
 		let cartSummary;
@@ -63,7 +63,7 @@ cart.get("/", optionalAuthMiddleware, async (c) => {
 });
 
 // Add item to cart
-cart.post(
+cartRoutes.post(
 	"/items",
 	optionalAuthMiddleware,
 	zValidator("json", addItemSchema),
@@ -124,7 +124,7 @@ cart.post(
 );
 
 // Update cart item quantity
-cart.put(
+cartRoutes.put(
 	"/items/:itemId",
 	optionalAuthMiddleware,
 	zValidator("json", updateItemSchema),
@@ -165,7 +165,7 @@ cart.put(
 );
 
 // Remove item from cart
-cart.delete("/items/:itemId", optionalAuthMiddleware, async (c) => {
+cartRoutes.delete("/items/:itemId", optionalAuthMiddleware, async (c) => {
 	try {
 		const user = c.get("user");
 		const itemId = c.req.param("itemId");
@@ -194,7 +194,7 @@ cart.delete("/items/:itemId", optionalAuthMiddleware, async (c) => {
 });
 
 // Clear cart
-cart.delete("/", optionalAuthMiddleware, async (c) => {
+cartRoutes.delete("/", optionalAuthMiddleware, async (c) => {
 	try {
 		const user = c.get("user");
 		let cartId: string;
@@ -226,7 +226,7 @@ cart.delete("/", optionalAuthMiddleware, async (c) => {
 });
 
 // Validate cart
-cart.get("/validate", optionalAuthMiddleware, async (c) => {
+cartRoutes.get("/validate", optionalAuthMiddleware, async (c) => {
 	try {
 		const user = c.get("user");
 		let cartId: string;
@@ -253,7 +253,7 @@ cart.get("/validate", optionalAuthMiddleware, async (c) => {
 });
 
 // Merge session cart with user cart (called after login)
-cart.post(
+cartRoutes.post(
 	"/merge",
 	authMiddleware,
 	zValidator(
@@ -290,4 +290,4 @@ cart.post(
 	},
 );
 
-export default cart;
+export default cartRoutes;

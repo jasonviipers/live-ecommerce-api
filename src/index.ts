@@ -26,6 +26,11 @@ import {
 // Import routes
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
+import vendorRoutes from "./routes/vendors";
+import analyticsRoutes from "./routes/analytics";
+import productRoutes from "./routes/products";
+import orderRoutes from "./routes/orders";
+import cartRoutes from "./routes/cart";
 
 const app = new Hono();
 
@@ -72,14 +77,14 @@ app.get("/health", async (c) => {
 
 app.route("/api/auth", authRoutes);
 app.route("/api/users", userRoutes);
-// app.route('/api/vendors', vendorRoutes);
-// app.route('/api/products', productRoutes);
-// app.route('/api/orders', orderRoutes);
-// app.route('/api/cart', cartRoutes);
+app.route("/api/vendors", vendorRoutes);
+app.route("/api/products", productRoutes);
+app.route("/api/orders", orderRoutes);
+app.route("/api/cart", cartRoutes);
 // app.route('/api/streams', streamRoutes);
 // app.route('/api/videos', videoRoutes);
 // app.route('/api/payments', paymentRoutes);
-// app.route('/api/analytics', analyticsRoutes);
+app.route("/api/analytics", analyticsRoutes);
 // app.route('/api/uploads', uploadRoutes);
 // app.route('/api/notifications', notificationRoutes);
 

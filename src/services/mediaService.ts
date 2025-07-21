@@ -136,6 +136,53 @@ export class MediaService {
 		}
 	}
 
+	static async getMediaStatsByUser(userId: string): Promise<{
+		totalFiles: number;
+		totalSize: number;
+		imageCount: number;
+		videoCount: number;
+		processingCount: number;
+		readyCount: number;
+		failedCount: number;
+	}> {
+		const sql = `
+    SELECT 
+      COUNT(*) as total_files,
+      COALESCE(SUM(size), 0) as total_size,
+      SUM(CASE WHEN mime_type LIKE 'image/%' THEN 1 ELSE 0 END) as image_count,
+      SUM(CASE WHEN mime_type LIKE 'video/%' THEN 1 ELSE 0 END) as video_count,
+      SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing_count,
+      SUM(CASE WHEN status = 'ready' THEN 1 ELSE 0 END) as ready_count,
+      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count
+    FROM media_files
+    WHERE user_id = $1
+  `;
+		const result = await query(sql, [userId]);
+
+		if (result.rows.length === 0) {
+			return {
+				totalFiles: 0,
+				totalSize: 0,
+				imageCount: 0,
+				videoCount: 0,
+				processingCount: 0,
+				readyCount: 0,
+				failedCount: 0,
+			};
+		}
+
+		const row = result.rows[0];
+		return {
+			totalFiles: parseInt(row.total_files),
+			totalSize: parseInt(row.total_size),
+			imageCount: parseInt(row.image_count),
+			videoCount: parseInt(row.video_count),
+			processingCount: parseInt(row.processing_count),
+			readyCount: parseInt(row.ready_count),
+			failedCount: parseInt(row.failed_count),
+		};
+	}
+
 	static async getMediaById(id: string): Promise<MediaFile | null> {
 		const sql = "SELECT * FROM media_files WHERE id = $1";
 		const result = await query(sql, [id]);
