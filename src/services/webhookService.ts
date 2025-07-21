@@ -493,7 +493,7 @@ export class WebhookService extends EventEmitter {
 					event.error = "Max retries exceeded";
 				} else {
 					// Schedule retry
-					const delay = Math.pow(2, event.retryCount) * 1000; // Exponential backoff
+					const delay = Math.min(Math.pow(2, event.retryCount) * 1000, 300000); //cap at 5min
 					event.nextRetryAt = new Date(Date.now() + delay);
 				}
 			}
@@ -544,20 +544,43 @@ export class WebhookService extends EventEmitter {
 			};
 
 			// Make HTTP request
-			const response = await fetch(endpoint.url, {
-				method: "POST",
-				headers,
-				body: payload,
-				signal: AbortSignal.timeout(this.DEFAULT_TIMEOUT),
-			});
+			let controller: AbortController | undefined;
+			let timeoutId: NodeJS.Timeout | undefined;
 
-			delivery.httpStatus = response.status;
-			delivery.responseHeaders = Object.fromEntries(response.headers.entries());
-			delivery.responseBody = await response.text();
-			delivery.deliveredAt = new Date();
+			const signal =
+				typeof AbortSignal.timeout === "function"
+					? AbortSignal.timeout(this.DEFAULT_TIMEOUT)
+					: (() => {
+							controller = new AbortController();
+							timeoutId = setTimeout(
+								() => controller?.abort(),
+								this.DEFAULT_TIMEOUT,
+							);
+							return controller.signal;
+						})();
 
-			if (!response.ok) {
-				delivery.error = `HTTP ${response.status}: ${response.statusText}`;
+			try {
+				const response = await fetch(endpoint.url, {
+					method: "POST",
+					headers,
+					body: payload,
+					signal,
+				});
+
+				delivery.httpStatus = response.status;
+				delivery.responseHeaders = Object.fromEntries(
+					response.headers.entries(),
+				);
+				delivery.responseBody = await response.text();
+				delivery.deliveredAt = new Date();
+
+				if (!response.ok) {
+					delivery.error = `HTTP ${response.status}: ${response.statusText}`;
+				}
+			} finally {
+				if (timeoutId) {
+					clearTimeout(timeoutId);
+				}
 			}
 
 			logger.info("Webhook delivered", {
