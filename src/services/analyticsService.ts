@@ -274,15 +274,14 @@ export class AnalyticsService {
 		try {
 			const dateFilter = AnalyticsService.buildDateFilter(dateFrom, dateTo);
 
-			// Basic vendor metrics
 			const vendorSql = `
-        SELECT 
-          (SELECT COUNT(*) FROM products WHERE vendor_id = $1) as total_products,
-          (SELECT COUNT(*) FROM orders WHERE vendor_id = $1 ${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "").replace("timestamp", "created_at") : ""}) as total_orders,
-          (SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE vendor_id = $1 AND status = 'completed' ${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "").replace("timestamp", "created_at") : ""}) as total_revenue,
-          (SELECT COALESCE(AVG(total_amount), 0) FROM orders WHERE vendor_id = $1 AND status = 'completed' ${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "").replace("timestamp", "created_at") : ""}) as avg_order_value,
-          (SELECT COUNT(DISTINCT user_id) FROM orders WHERE vendor_id = $1 ${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "").replace("timestamp", "created_at") : ""}) as customer_count
-      `;
+					SELECT 
+					(SELECT COUNT(*) FROM products WHERE vendor_id = $1) as total_products,
+					(SELECT COUNT(*) FROM orders WHERE vendor_id = $1 ${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "").replace("timestamp", "created_at") : ""}) as total_orders,
+					(SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE vendor_id = $1 AND status = 'completed' ${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "").replace("timestamp", "created_at") : ""}) as total_revenue,
+					(SELECT COALESCE(AVG(total_amount), 0) FROM orders WHERE vendor_id = $1 AND status = 'completed' ${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "").replace("timestamp", "created_at") : ""}) as avg_order_value,
+					(SELECT COUNT(DISTINCT user_id) FROM orders WHERE vendor_id = $1 ${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "").replace("timestamp", "created_at") : ""}) as customer_count
+				`;
 
 			const vendorResult = await query(vendorSql, [
 				vendorId,
@@ -290,15 +289,14 @@ export class AnalyticsService {
 			]);
 			const vendorRow = vendorResult.rows[0];
 
-			// Conversion rate
 			const conversionSql = `
-        SELECT 
-          COUNT(*) FILTER (WHERE ae.event_category = 'ecommerce' AND ae.event_action = 'purchase') as purchases,
-          COUNT(DISTINCT ae.user_id) FILTER (WHERE ae.event_category = 'product' AND ae.event_action = 'view') as unique_visitors
-        FROM analytics_events ae
-        WHERE ae.properties->>'vendorId' = $1
-        ${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "") : ""}
-      `;
+					SELECT 
+					COUNT(*) FILTER (WHERE ae.event_category = 'ecommerce' AND ae.event_action = 'purchase') as purchases,
+					COUNT(DISTINCT ae.user_id) FILTER (WHERE ae.event_category = 'product' AND ae.event_action = 'view') as unique_visitors
+					FROM analytics_events ae
+					WHERE ae.properties->>'vendorId' = $1
+					${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "") : ""}
+				`;
 
 			const conversionResult = await query(conversionSql, [
 				vendorId,
@@ -308,18 +306,16 @@ export class AnalyticsService {
 			const conversionRate =
 				unique_visitors > 0 ? (purchases / unique_visitors) * 100 : 0;
 
-			// Repeat customer rate
 			const repeatCustomerSql = `
-        WITH customer_orders AS (
-          SELECT user_id, COUNT(*) as order_count
-          FROM orders 
-          WHERE vendor_id = $1 ${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "").replace("timestamp", "created_at") : ""}
-          GROUP BY user_id
-        )
-        SELECT 
-          COUNT(*) FILTER (WHERE order_count > 1)::float / COUNT(*) as repeat_rate
-        FROM customer_orders
-      `;
+						WITH customer_orders AS (
+						SELECT user_id, COUNT(*) as order_count
+						FROM orders 
+						WHERE vendor_id = $1 ${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "").replace("timestamp", "created_at") : ""}
+						GROUP BY user_id)
+						SELECT 
+						COUNT(*) FILTER (WHERE order_count > 1)::float / COUNT(*) as repeat_rate
+						FROM customer_orders
+      			`;
 
 			const repeatResult = await query(repeatCustomerSql, [
 				vendorId,
@@ -328,20 +324,19 @@ export class AnalyticsService {
 			const repeatCustomerRate =
 				parseFloat(repeatResult.rows[0]?.repeat_rate || 0) * 100;
 
-			// Top products
 			const topProductsSql = `
-        SELECT 
-          p.id as product_id,
-          COUNT(*) FILTER (WHERE ae.event_category = 'ecommerce' AND ae.event_action = 'purchase') as purchases,
-          COALESCE(SUM((ae.properties->>'amount')::numeric) FILTER (WHERE ae.event_category = 'ecommerce' AND ae.event_action = 'purchase'), 0) as revenue
-        FROM products p
-        LEFT JOIN analytics_events ae ON ae.properties->>'productId' = p.id::text
-        WHERE p.vendor_id = $1
-        ${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "") : ""}
-        GROUP BY p.id
-        ORDER BY purchases DESC, revenue DESC
-        LIMIT 10
-      `;
+						SELECT 
+						p.id as product_id,
+						COUNT(*) FILTER (WHERE ae.event_category = 'ecommerce' AND ae.event_action = 'purchase') as purchases,
+						COALESCE(SUM((ae.properties->>'amount')::numeric) FILTER (WHERE ae.event_category = 'ecommerce' AND ae.event_action = 'purchase'), 0) as revenue
+						FROM products p
+						LEFT JOIN analytics_events ae ON ae.properties->>'productId' = p.id::text
+						WHERE p.vendor_id = $1
+						${dateFilter.whereClause ? "AND " + dateFilter.whereClause.replace("WHERE ", "") : ""}
+						GROUP BY p.id
+						ORDER BY purchases DESC, revenue DESC
+						LIMIT 10
+     			 `;
 
 			const topProductsResult = await query(topProductsSql, [
 				vendorId,
@@ -358,6 +353,28 @@ export class AnalyticsService {
 				topProducts.push(productAnalytics);
 			}
 
+			const recentStreamsSql = `
+					SELECT id FROM streams
+					WHERE vendor_id = $1
+					AND status IN ('ended', 'live')
+					ORDER BY 
+						CASE WHEN status = 'live' THEN 0 ELSE 1 END,
+						COALESCE(ended_at, started_at, created_at) DESC
+					LIMIT 5
+				`;
+
+			const recentStreamsResult = await query(recentStreamsSql, [vendorId]);
+			const recentStreams: StreamAnalytics[] = [];
+
+			for (const row of recentStreamsResult.rows) {
+				const streamAnalytics = await this.getStreamAnalytics(
+					row.id,
+					dateFrom,
+					dateTo,
+				);
+				recentStreams.push(streamAnalytics);
+			}
+
 			return {
 				vendorId,
 				totalProducts: parseInt(vendorRow.total_products) || 0,
@@ -368,7 +385,7 @@ export class AnalyticsService {
 				customerCount: parseInt(vendorRow.customer_count) || 0,
 				repeatCustomerRate: parseFloat(repeatCustomerRate.toFixed(2)),
 				topProducts,
-				recentStreams: [], // TODO: Implement recent streams analytics
+				recentStreams,
 			};
 		} catch (error) {
 			logger.error("Failed to get vendor analytics", error as Error);
