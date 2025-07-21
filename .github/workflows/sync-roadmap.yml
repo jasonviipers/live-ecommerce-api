@@ -1,0 +1,16 @@
+name: Sync README → Project Board
+on:
+  push:
+    paths: ['README.md']
+  workflow_dispatch:
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: node .github/scripts/sync-readme-to-board.js
+        env:
+          GH_PROJECT_TOKEN: ${{ secrets.GH_PROJECT_TOKEN }}
