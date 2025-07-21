@@ -10,6 +10,7 @@ import { config } from "./config";
 import { logger } from "./config/logger";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { errorHandler } from "./middleware/errorHandler";
+import MediaService from "./services/mediaService";
 
 // Database connections
 import {
@@ -31,6 +32,8 @@ import analyticsRoutes from "./routes/analytics";
 import productRoutes from "./routes/products";
 import orderRoutes from "./routes/orders";
 import cartRoutes from "./routes/cart";
+import streamRoutes from "./routes/streams";
+import videoRoutes from "./routes/videos";
 
 const app = new Hono();
 
@@ -81,8 +84,8 @@ app.route("/api/vendors", vendorRoutes);
 app.route("/api/products", productRoutes);
 app.route("/api/orders", orderRoutes);
 app.route("/api/cart", cartRoutes);
-// app.route('/api/streams', streamRoutes);
-// app.route('/api/videos', videoRoutes);
+app.route("/api/streams", streamRoutes);
+app.route("/api/videos", videoRoutes);
 // app.route('/api/payments', paymentRoutes);
 app.route("/api/analytics", analyticsRoutes);
 // app.route('/api/uploads', uploadRoutes);
@@ -108,9 +111,15 @@ const startServer = async () => {
 
 		// Initialize database connections
 		logger.info("📊 Initializing database connections...");
-		// await initializeDatabase();
-		// await initializeRedis();
+		await initializeDatabase();
+		await initializeRedis();
 
+		// Initialize MediaService
+		logger.info("📁 Initializing MediaService...");
+		await MediaService.initialize();
+
+		// Initialize and start Media Server
+		logger.info("📺 Initializing Media Server...");
 		fire(app);
 	} catch (error) {
 		logger.error("Failed to start server", error as Error);

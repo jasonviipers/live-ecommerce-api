@@ -18,10 +18,10 @@ import StreamRepository from "@/repositories/stream";
 import { UpdateStreamData } from "@/types";
 import { withTransaction } from "@/database/connection";
 
-const streams = new Hono();
+const streamRoutes = new Hono();
 
 // Get all streams (public)
-streams.get(
+streamRoutes.get(
 	"/",
 	optionalAuthMiddleware,
 	zValidator("query", querySchema),
@@ -64,7 +64,7 @@ streams.get(
 );
 
 // Get live streams (public)
-streams.get("/live", async (c) => {
+streamRoutes.get("/live", async (c) => {
 	try {
 		const limit = parseInt(c.req.query("limit") || "20");
 		const streams = await StreamRepository.getLiveStreams(Math.min(limit, 100));
@@ -80,7 +80,7 @@ streams.get("/live", async (c) => {
 });
 
 // Get upcoming streams (public)
-streams.get("/upcoming", async (c) => {
+streamRoutes.get("/upcoming", async (c) => {
 	try {
 		const limit = parseInt(c.req.query("limit") || "20");
 		const streams = await StreamRepository.getUpcomingStreams(
@@ -98,7 +98,7 @@ streams.get("/upcoming", async (c) => {
 });
 
 // Get popular streams (public)
-streams.get(
+streamRoutes.get(
 	"/popular",
 	zValidator(
 		"query",
@@ -127,7 +127,7 @@ streams.get(
 );
 
 // Create stream (vendor/admin only)
-streams.post(
+streamRoutes.post(
 	"/",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -173,7 +173,7 @@ streams.post(
 );
 
 // Get single stream (public)
-streams.get("/:id", optionalAuthMiddleware, async (c) => {
+streamRoutes.get("/:id", optionalAuthMiddleware, async (c) => {
 	try {
 		const id = c.req.param("id");
 		const stream = await StreamRepository.findById(id);
@@ -193,7 +193,7 @@ streams.get("/:id", optionalAuthMiddleware, async (c) => {
 });
 
 // Update stream (vendor owner/admin only)
-streams.put(
+streamRoutes.put(
 	"/:id",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -248,45 +248,50 @@ streams.put(
 );
 
 // Start stream (vendor owner/admin only)
-streams.post("/:id/start", authMiddleware, requireVendorOrAdmin, async (c) => {
-	try {
-		const user = c.get("user");
-		const id = c.req.param("id");
+streamRoutes.post(
+	"/:id/start",
+	authMiddleware,
+	requireVendorOrAdmin,
+	async (c) => {
+		try {
+			const user = c.get("user");
+			const id = c.req.param("id");
 
-		// Get existing stream
-		const existingStream = await StreamRepository.findById(id);
-		if (!existingStream) {
-			throw createError.notFound("Stream not found");
+			// Get existing stream
+			const existingStream = await StreamRepository.findById(id);
+			if (!existingStream) {
+				throw createError.notFound("Stream not found");
+			}
+
+			// Check ownership
+			if (user.role === "vendor" && existingStream.vendorId !== user.vendorId) {
+				throw createError.forbidden("Access denied to this stream");
+			}
+
+			const started = await StreamRepository.startStream(id);
+
+			if (!started) {
+				throw createError.badRequest("Stream cannot be started");
+			}
+
+			logger.info("Stream started", {
+				streamId: id,
+				userId: user.id,
+			});
+
+			return c.json({
+				success: true,
+				message: "Stream started successfully",
+			});
+		} catch (error) {
+			logger.error("Failed to start stream", error as Error);
+			throw error;
 		}
-
-		// Check ownership
-		if (user.role === "vendor" && existingStream.vendorId !== user.vendorId) {
-			throw createError.forbidden("Access denied to this stream");
-		}
-
-		const started = await StreamRepository.startStream(id);
-
-		if (!started) {
-			throw createError.badRequest("Stream cannot be started");
-		}
-
-		logger.info("Stream started", {
-			streamId: id,
-			userId: user.id,
-		});
-
-		return c.json({
-			success: true,
-			message: "Stream started successfully",
-		});
-	} catch (error) {
-		logger.error("Failed to start stream", error as Error);
-		throw error;
-	}
-});
+	},
+);
 
 // End stream (vendor owner/admin only)
-streams.post(
+streamRoutes.post(
 	"/:id/end",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -337,7 +342,7 @@ streams.post(
 );
 
 // Update viewer count (internal/webhook)
-streams.patch(
+streamRoutes.patch(
 	"/:id/viewers",
 	zValidator(
 		"json",
@@ -370,65 +375,78 @@ streams.patch(
 );
 
 // Like stream (authenticated users)
-streams.post("/:id/like", authMiddleware, requireAuthenticated, async (c) => {
-	try {
-		const user = c.get("user");
-		const id = c.req.param("id");
+streamRoutes.post(
+	"/:id/like",
+	authMiddleware,
+	requireAuthenticated,
+	async (c) => {
+		try {
+			const user = c.get("user");
+			const id = c.req.param("id");
 
-		const alreadyLiked = await StreamRepository.hasUserLikedStream(id, user.id);
-		if (alreadyLiked) {
-			throw createError.badRequest("You already liked this stream");
+			const alreadyLiked = await StreamRepository.hasUserLikedStream(
+				id,
+				user.id,
+			);
+			if (alreadyLiked) {
+				throw createError.badRequest("You already liked this stream");
+			}
+
+			await withTransaction(async (client) => {
+				await StreamRepository.incrementLikeCount(id, client);
+				await StreamRepository.recordUserLike(id, user.id, client);
+			});
+
+			logger.info("Stream liked", {
+				streamId: id,
+				userId: user.id,
+			});
+
+			return c.json({
+				success: true,
+				message: "Stream liked successfully",
+			});
+		} catch (error) {
+			logger.error("Failed to like stream", error as Error);
+			throw error;
 		}
-
-		await withTransaction(async (client) => {
-			await StreamRepository.incrementLikeCount(id, client);
-			await StreamRepository.recordUserLike(id, user.id, client);
-		});
-
-		logger.info("Stream liked", {
-			streamId: id,
-			userId: user.id,
-		});
-
-		return c.json({
-			success: true,
-			message: "Stream liked successfully",
-		});
-	} catch (error) {
-		logger.error("Failed to like stream", error as Error);
-		throw error;
-	}
-});
+	},
+);
 
 // Share stream (authenticated users)
-streams.post("/:id/share", authMiddleware, requireAuthenticated, async (c) => {
-	try {
-		const user = c.get("user");
-		const id = c.req.param("id");
+streamRoutes.post(
+	"/:id/share",
+	authMiddleware,
+	requireAuthenticated,
+	async (c) => {
+		try {
+			const user = c.get("user");
+			const id = c.req.param("id");
 
-		const updated = await StreamRepository.incrementShareCount(id);
+			const updated = await StreamRepository.incrementShareCount(id);
 
-		if (!updated) {
-			throw createError.notFound("Stream not found");
+			if (!updated) {
+				throw createError.notFound("Stream not found");
+			}
+
+			logger.info("Stream shared", {
+				streamId: id,
+				userId: user.id,
+			});
+
+			return c.json({
+				success: true,
+				message: "Stream shared successfully",
+			});
+		} catch (error) {
+			logger.error("Failed to share stream", error as Error);
+			throw error;
 		}
-
-		logger.info("Stream shared", {
-			streamId: id,
-			userId: user.id,
-		});
-
-		return c.json({
-			success: true,
-			message: "Stream shared successfully",
-		});
-	} catch (error) {
-		logger.error("Failed to share stream", error as Error);
-		throw error;
-	}
-});
+	},
+);
 
 // Delete stream (vendor owner/admin only)
-streams.delete("/:id", authMiddleware, requireVendorOrAdmin, async (c) => {
+streamRoutes.delete("/:id", authMiddleware, requireVendorOrAdmin, async (c) => {
 	try {
 		const user = c.get("user");
 		const id = c.req.param("id");
@@ -466,7 +484,7 @@ streams.delete("/:id", authMiddleware, requireVendorOrAdmin, async (c) => {
 });
 
 // Get vendor's streams (vendor owner/admin only)
-streams.get(
+streamRoutes.get(
 	"/vendor/:vendorId",
 	authMiddleware,
 	zValidator("query", querySchema),
@@ -515,4 +533,4 @@ streams.get(
 	},
 );
 
-export default streams;
+export default streamRoutes;

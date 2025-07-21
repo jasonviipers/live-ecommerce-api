@@ -44,6 +44,29 @@ export class VideoRepository {
 		return this.mapRowToVideo(result.rows[0]);
 	}
 
+	// Check if user has already liked a video
+	static async hasUserLikedVideo(
+		videoId: string,
+		userId: string,
+	): Promise<boolean> {
+		const sql = `
+				SELECT 1 FROM likes 
+				WHERE likeable_type = 'video' 
+				AND likeable_id = $1 
+				AND user_id = $2
+ 		 `;
+		const result = await query(sql, [videoId, userId]);
+		return result.rowCount > 0;
+	}
+
+	// Record a user like for a video
+	static async recordUserLike(videoId: string, userId: string): Promise<void> {
+		await query(
+			"INSERT INTO likes (user_id, likeable_type, likeable_id) VALUES ($1, $2, $3)",
+			[userId, "video", videoId],
+		);
+	}
+
 	// Find all videos with pagination and filters
 	static async findAll(
 		page: number = 1,
