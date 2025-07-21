@@ -9,15 +9,35 @@ export class WebhookService extends EventEmitter {
 	private webhookEndpoints: Map<string, WebhookEndpoint> = new Map();
 	private processingQueue: WebhookEvent[] = [];
 	private isProcessing: boolean = false;
+	private isInitialized: boolean = false;
+	private initializationPromise: Promise<void> | null = null;
 	private readonly MAX_CONCURRENT_DELIVERIES = 10;
 	private readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
 
 	constructor() {
 		super();
-		this.initializeService();
 	}
 
-	// Initialize webhook service
+	public static async create(): Promise<WebhookService> {
+		const service = new WebhookService();
+		await service.initializeService();
+		return service;
+	}
+
+	private async ensureInitialized(): Promise<void> {
+		if (this.isInitialized) {
+			return;
+		}
+
+		if (this.initializationPromise) {
+			await this.initializationPromise;
+			return;
+		}
+
+		this.initializationPromise = this.initializeService();
+		await this.initializationPromise;
+	}
+
 	private async initializeService(): Promise<void> {
 		try {
 			// Load webhook endpoints from database
@@ -29,9 +49,13 @@ export class WebhookService extends EventEmitter {
 			// Setup cleanup intervals
 			this.setupCleanupIntervals();
 
+			this.isInitialized = true;
 			logger.info("Webhook service initialized");
 		} catch (error) {
 			logger.error("Failed to initialize webhook service", error as Error);
+			throw error; // Re-throw to allow proper handling in factory method
+		} finally {
+			this.initializationPromise = null;
 		}
 	}
 
@@ -41,6 +65,7 @@ export class WebhookService extends EventEmitter {
 		data: any,
 		source: WebhookEvent["source"] = "internal",
 	): Promise<WebhookEvent> {
+		await this.ensureInitialized();
 		try {
 			const event: WebhookEvent = {
 				id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -85,6 +110,7 @@ export class WebhookService extends EventEmitter {
 			headers?: Record<string, string>;
 		} = {},
 	): Promise<WebhookEndpoint> {
+		await this.ensureInitialized();
 		try {
 			const endpoint: WebhookEndpoint = {
 				id: `wh_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -136,6 +162,7 @@ export class WebhookService extends EventEmitter {
 			headers?: Record<string, string>;
 		},
 	): Promise<WebhookEndpoint | null> {
+		await this.ensureInitialized();
 		try {
 			const endpoint = this.webhookEndpoints.get(endpointId);
 
@@ -172,6 +199,7 @@ export class WebhookService extends EventEmitter {
 
 	// Delete webhook endpoint
 	async deleteEndpoint(endpointId: string): Promise<boolean> {
+		await this.ensureInitialized();
 		try {
 			const endpoint = this.webhookEndpoints.get(endpointId);
 
@@ -202,6 +230,7 @@ export class WebhookService extends EventEmitter {
 		payload: string,
 		signature: string,
 	): Promise<boolean> {
+		await this.ensureInitialized();
 		try {
 			// Verify Stripe signature
 			const isValid = this.verifyStripeSignature(payload, signature);
@@ -274,7 +303,6 @@ export class WebhookService extends EventEmitter {
 			const metadata = paymentIntent.metadata;
 
 			if (metadata.type === "donation") {
-				// Handle donation completion
 				// TODO: Handle donation completion
 				// const donationService = getDonationService();
 				// await donationService.completeDonation(paymentIntent.id);
@@ -833,10 +861,15 @@ export class WebhookService extends EventEmitter {
 
 // Create singleton instance
 let webhookService: WebhookService | null = null;
+let initializationPromise: Promise<WebhookService> | null = null;
 
-export const getWebhookService = (): WebhookService => {
+export const getWebhookService = async (): Promise<WebhookService> => {
 	if (!webhookService) {
-		webhookService = new WebhookService();
+		if (!initializationPromise) {
+			initializationPromise = WebhookService.create();
+		}
+		webhookService = await initializationPromise;
+		initializationPromise = null;
 	}
 
 	return webhookService;
