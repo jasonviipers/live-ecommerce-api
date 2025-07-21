@@ -10,6 +10,7 @@ import { config } from "./config";
 import { logger } from "./config/logger";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { errorHandler } from "./middleware/errorHandler";
+import MediaService from "./services/mediaService";
 
 // Database connections
 import {
@@ -110,9 +111,15 @@ const startServer = async () => {
 
 		// Initialize database connections
 		logger.info("📊 Initializing database connections...");
-		// await initializeDatabase();
-		// await initializeRedis();
+		await initializeDatabase();
+		await initializeRedis();
 
+		// Initialize MediaService
+		logger.info("📁 Initializing MediaService...");
+		await MediaService.initialize();
+
+		// Initialize and start Media Server
+		logger.info("📺 Initializing Media Server...");
 		fire(app);
 	} catch (error) {
 		logger.error("Failed to start server", error as Error);
