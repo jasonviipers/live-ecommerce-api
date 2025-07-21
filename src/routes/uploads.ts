@@ -416,9 +416,11 @@ uploads.post(
 						const mediaFiles = await Promise.all(uploadPromises);
 
 						// Associate images with product in database
-						const newImageUrls = mediaFiles.map(f => f.url);
+						const newImageUrls = mediaFiles.map((f) => f.url);
 						const updatedImages = [...(product.images || []), ...newImageUrls];
-						await ProductRepository.update(productId, { images: updatedImages });
+						await ProductRepository.update(productId, {
+							images: updatedImages,
+						});
 
 						logger.info("Product images uploaded successfully", {
 							productId,

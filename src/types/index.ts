@@ -563,3 +563,49 @@ export interface RealTimeMetrics {
 	revenueToday: number;
 	activeStreams: number;
 }
+
+export interface WebhookEvent {
+	id: string;
+	type: string;
+	source: "internal" | "stripe" | "cloudflare" | "external";
+	data: any;
+	timestamp: Date;
+	signature?: string;
+	processed: boolean;
+	processedAt?: Date;
+	retryCount: number;
+	maxRetries: number;
+	nextRetryAt?: Date;
+	error?: string;
+}
+
+export interface WebhookEndpoint {
+	id: string;
+	url: string;
+	events: string[];
+	secret: string;
+	isActive: boolean;
+	retryPolicy: {
+		maxRetries: number;
+		backoffMultiplier: number;
+		initialDelay: number;
+	};
+	headers?: Record<string, string>;
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+export interface WebhookDelivery {
+	id: string;
+	webhookId: string;
+	eventId: string;
+	url: string;
+	httpStatus?: number;
+	responseBody?: string;
+	responseHeaders?: Record<string, string>;
+	deliveredAt?: Date;
+	error?: string;
+	retryCount: number;
+	nextRetryAt?: Date;
+	createdAt: Date;
+}
