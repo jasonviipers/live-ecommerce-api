@@ -13,9 +13,10 @@ jobs:
       - uses: oven-sh/setup-bun@v2   # install Bun
         with:
           bun-version: latest
+          cache: true  # Enable Bun's built-in cache for faster installs
 
       - run: bun install --frozen-lockfile   # equivalent of npm ci for Bun
 
-      - run: node .github/scripts/sync-readme-to-board.js
+      - run: bun .github/scripts/sync-readme-to-board.js 
         env:
           GH_PROJECT_TOKEN: ${{ secrets.GH_PROJECT_TOKEN }}
