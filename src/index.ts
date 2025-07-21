@@ -31,6 +31,8 @@ import analyticsRoutes from "./routes/analytics";
 import productRoutes from "./routes/products";
 import orderRoutes from "./routes/orders";
 import cartRoutes from "./routes/cart";
+import streamRoutes from "./routes/streams";
+import videoRoutes from "./routes/videos";
 
 const app = new Hono();
 
@@ -81,8 +83,8 @@ app.route("/api/vendors", vendorRoutes);
 app.route("/api/products", productRoutes);
 app.route("/api/orders", orderRoutes);
 app.route("/api/cart", cartRoutes);
-// app.route('/api/streams', streamRoutes);
-// app.route('/api/videos', videoRoutes);
+app.route("/api/streams", streamRoutes);
+app.route("/api/videos", videoRoutes);
 // app.route('/api/payments', paymentRoutes);
 app.route("/api/analytics", analyticsRoutes);
 // app.route('/api/uploads', uploadRoutes);

@@ -16,10 +16,10 @@ import {
 	updateVideoSchema,
 } from "@/utils/validation";
 
-const videos = new Hono();
+const videoRoutes = new Hono();
 
 // Get all videos (public)
-videos.get(
+videoRoutes.get(
 	"/",
 	optionalAuthMiddleware,
 	zValidator("query", querySchema),
@@ -62,7 +62,7 @@ videos.get(
 );
 
 // Get trending videos (public)
-videos.get(
+videoRoutes.get(
 	"/trending",
 	zValidator(
 		"query",
@@ -88,7 +88,7 @@ videos.get(
 );
 
 // Get recent videos (public)
-videos.get("/recent", async (c) => {
+videoRoutes.get("/recent", async (c) => {
 	try {
 		const limit = parseInt(c.req.query("limit") || "20");
 		const videos = await VideoRepository.getRecentVideos(Math.min(limit, 100));
@@ -104,7 +104,7 @@ videos.get("/recent", async (c) => {
 });
 
 // Get popular videos (public)
-videos.get(
+videoRoutes.get(
 	"/popular",
 	zValidator(
 		"query",
@@ -130,7 +130,7 @@ videos.get(
 );
 
 // Search videos (public)
-videos.get(
+videoRoutes.get(
 	"/search",
 	zValidator(
 		"query",
@@ -186,7 +186,7 @@ videos.get(
 );
 
 // Create video (vendor/admin only)
-videos.post(
+videoRoutes.post(
 	"/",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -232,7 +232,7 @@ videos.post(
 );
 
 // Get single video (public)
-videos.get("/:id", optionalAuthMiddleware, async (c) => {
+videoRoutes.get("/:id", optionalAuthMiddleware, async (c) => {
 	try {
 		const id = c.req.param("id");
 		const video = await VideoRepository.findById(id);
@@ -267,7 +267,7 @@ videos.get("/:id", optionalAuthMiddleware, async (c) => {
 });
 
 // Update video (vendor owner/admin only)
-videos.put(
+videoRoutes.put(
 	"/:id",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -313,64 +313,74 @@ videos.put(
 );
 
 // Like video (authenticated users)
-videos.post("/:id/like", authMiddleware, requireAuthenticated, async (c) => {
-	try {
-		const user = c.get("user");
-		const id = c.req.param("id");
+videoRoutes.post(
+	"/:id/like",
+	authMiddleware,
+	requireAuthenticated,
+	async (c) => {
+		try {
+			const user = c.get("user");
+			const id = c.req.param("id");
 
-		// TODO: Check if user already liked this video
-		// TODO: Store user likes in database
+			// TODO: Check if user already liked this video
+			// TODO: Store user likes in database
 
-		const updated = await VideoRepository.incrementLikeCount(id);
+			const updated = await VideoRepository.incrementLikeCount(id);
 
-		if (!updated) {
-			throw createError.notFound("Video not found");
+			if (!updated) {
+				throw createError.notFound("Video not found");
+			}
+
+			logger.info("Video liked", {
+				videoId: id,
+				userId: user.id,
+			});
+
+			return c.json({
+				success: true,
+				message: "Video liked successfully",
+			});
+		} catch (error) {
+			logger.error("Failed to like video", error as Error);
+			throw error;
 		}
-
-		logger.info("Video liked", {
-			videoId: id,
-			userId: user.id,
-		});
-
-		return c.json({
-			success: true,
-			message: "Video liked successfully",
-		});
-	} catch (error) {
-		logger.error("Failed to like video", error as Error);
-		throw error;
-	}
-});
+	},
+);
 
 // Share video (authenticated users)
-videos.post("/:id/share", authMiddleware, requireAuthenticated, async (c) => {
-	try {
-		const user = c.get("user");
-		const id = c.req.param("id");
+videoRoutes.post(
+	"/:id/share",
+	authMiddleware,
+	requireAuthenticated,
+	async (c) => {
+		try {
+			const user = c.get("user");
+			const id = c.req.param("id");
 
-		const updated = await VideoRepository.incrementShareCount(id);
+			const updated = await VideoRepository.incrementShareCount(id);
 
-		if (!updated) {
-			throw createError.notFound("Video not found");
+			if (!updated) {
+				throw createError.notFound("Video not found");
+			}
+
+			logger.info("Video shared", {
+				videoId: id,
+				userId: user.id,
+			});
+
+			return c.json({
+				success: true,
+				message: "Video shared successfully",
+			});
+		} catch (error) {
+			logger.error("Failed to share video", error as Error);
+			throw error;
 		}
-
-		logger.info("Video shared", {
-			videoId: id,
-			userId: user.id,
-		});
-
-		return c.json({
-			success: true,
-			message: "Video shared successfully",
-		});
-	} catch (error) {
-		logger.error("Failed to share video", error as Error);
-		throw error;
-	}
-});
+	},
+);
 
 // Delete video (vendor owner/admin only)
-videos.delete("/:id", authMiddleware, requireVendorOrAdmin, async (c) => {
+videoRoutes.delete("/:id", authMiddleware, requireVendorOrAdmin, async (c) => {
 	try {
 		const user = c.get("user");
 		const id = c.req.param("id");
@@ -408,7 +418,7 @@ videos.delete("/:id", authMiddleware, requireVendorOrAdmin, async (c) => {
 });
 
 // Get vendor's videos (vendor owner/admin only)
-videos.get(
+videoRoutes.get(
 	"/vendor/:vendorId",
 	authMiddleware,
 	zValidator(
@@ -460,7 +470,7 @@ videos.get(
 );
 
 // Get video statistics (vendor/admin only)
-videos.get(
+videoRoutes.get(
 	"/stats/summary",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -502,4 +512,4 @@ videos.get(
 	},
 );
 
-export default videos;
+export default videoRoutes;
