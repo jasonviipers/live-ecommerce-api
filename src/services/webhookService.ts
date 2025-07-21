@@ -4,6 +4,7 @@ import { query } from "@/database/connection";
 import { WebhookDelivery, WebhookEndpoint, WebhookEvent } from "@/types";
 import logger from "@/config/logger";
 import { config } from "@/config";
+import { createId } from "@paralleldrive/cuid2";
 
 export class WebhookService extends EventEmitter {
 	private webhookEndpoints: Map<string, WebhookEndpoint> = new Map();
@@ -68,7 +69,7 @@ export class WebhookService extends EventEmitter {
 		await this.ensureInitialized();
 		try {
 			const event: WebhookEvent = {
-				id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+				id: `evt_${createId()}`,
 				type,
 				source,
 				data,
@@ -541,7 +542,7 @@ export class WebhookService extends EventEmitter {
 		endpoint: WebhookEndpoint,
 	): Promise<WebhookDelivery> {
 		const delivery: WebhookDelivery = {
-			id: `del_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+			id: `del_${createId()}`,
 			webhookId: endpoint.id,
 			eventId: event.id,
 			url: endpoint.url,
