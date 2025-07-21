@@ -269,6 +269,25 @@ const updateVideoSchema = createVideoSchema.partial().extend({
 	status: z.enum(["processing", "ready", "failed"]).optional(),
 });
 
+const trackEventSchema = z.object({
+	eventType: z.string().min(1, "Event type is required"),
+	eventCategory: z.string().min(1, "Event category is required"),
+	eventAction: z.string().min(1, "Event action is required"),
+	eventLabel: z.string().optional(),
+	eventValue: z.number().optional(),
+	properties: z.record(z.any()).optional(),
+	sessionId: z.string().optional(),
+});
+
+const dateRangeSchema = z.object({
+	dateFrom: z.string().datetime().optional(),
+	dateTo: z.string().datetime().optional(),
+});
+
+const vendorAnalyticsSchema = dateRangeSchema.extend({
+	vendorId: z.string().uuid().optional(),
+});
+
 export {
 	registerSchema,
 	loginSchema,
@@ -294,4 +313,7 @@ export {
 	uploadOptionsSchema,
 	createVideoSchema,
 	updateVideoSchema,
+	trackEventSchema,
+	vendorAnalyticsSchema,
+	dateRangeSchema,
 };

@@ -19,10 +19,10 @@ import {
 import CartRepository from "@/repositories/cart";
 import ProductRepository from "@/repositories/product";
 
-const orders = new Hono();
+const orderRoutes = new Hono();
 
 // Get all orders (user's own orders or vendor/admin)
-orders.get(
+orderRoutes.get(
 	"/",
 	authMiddleware,
 	requireAuthenticated,
@@ -72,7 +72,7 @@ orders.get(
 );
 
 // Create order from cart or direct items
-orders.post(
+orderRoutes.post(
 	"/",
 	authMiddleware,
 	requireAuthenticated,
@@ -197,7 +197,7 @@ orders.post(
 );
 
 // Get single order
-orders.get("/:id", authMiddleware, requireAuthenticated, async (c) => {
+orderRoutes.get("/:id", authMiddleware, requireAuthenticated, async (c) => {
 	try {
 		const user = c.get("user");
 		const id = c.req.param("id");
@@ -231,7 +231,7 @@ orders.get("/:id", authMiddleware, requireAuthenticated, async (c) => {
 });
 
 // Get order by order number
-orders.get(
+orderRoutes.get(
 	"/number/:orderNumber",
 	authMiddleware,
 	requireAuthenticated,
@@ -270,7 +270,7 @@ orders.get(
 );
 
 // Update order (vendor/admin only)
-orders.put(
+orderRoutes.put(
 	"/:id",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -326,7 +326,7 @@ orders.put(
 );
 
 // Update order status (vendor/admin only)
-orders.patch(
+orderRoutes.patch(
 	"/:id/status",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -385,7 +385,7 @@ orders.patch(
 );
 
 // Update payment status (admin only)
-orders.patch(
+orderRoutes.patch(
 	"/:id/payment-status",
 	authMiddleware,
 	requireAdmin,
@@ -434,7 +434,7 @@ orders.patch(
 );
 
 // Cancel order
-orders.post(
+orderRoutes.post(
 	"/:id/cancel",
 	authMiddleware,
 	requireAuthenticated,
@@ -490,7 +490,7 @@ orders.post(
 );
 
 // Get order statistics (vendor/admin only)
-orders.get(
+orderRoutes.get(
 	"/stats/summary",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -531,4 +531,4 @@ orders.get(
 	},
 );
 
-export default orders;
+export default orderRoutes;

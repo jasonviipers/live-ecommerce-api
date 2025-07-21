@@ -469,3 +469,86 @@ export interface ProcessingResult {
 	metadata?: any;
 	error?: string;
 }
+
+export interface AnalyticsEvent {
+	id: string;
+	userId?: string;
+	sessionId?: string;
+	eventType: string;
+	eventCategory: string;
+	eventAction: string;
+	eventLabel?: string;
+	eventValue?: number;
+	properties?: any;
+	timestamp: Date;
+	ipAddress?: string;
+	userAgent?: string;
+	referrer?: string;
+	url?: string;
+}
+
+export interface TrackEventData {
+	userId?: string;
+	sessionId?: string;
+	eventType: string;
+	eventCategory: string;
+	eventAction: string;
+	eventLabel?: string;
+	eventValue?: number;
+	properties?: any;
+	ipAddress?: string;
+	userAgent?: string;
+	referrer?: string;
+	url?: string;
+}
+
+export interface AnalyticsMetrics {
+	totalUsers: number;
+	activeUsers: number;
+	totalSessions: number;
+	averageSessionDuration: number;
+	bounceRate: number;
+	pageViews: number;
+	uniquePageViews: number;
+	conversionRate: number;
+}
+
+export interface StreamAnalytics {
+	streamId: string;
+	totalViews: number;
+	uniqueViewers: number;
+	averageViewDuration: number;
+	peakViewers: number;
+	chatMessages: number;
+	likes: number;
+	shares: number;
+	conversionRate: number;
+	revenue: number;
+}
+
+export interface ProductAnalytics {
+	productId: string;
+	views: number;
+	uniqueViews: number;
+	addToCart: number;
+	purchases: number;
+	conversionRate: number;
+	revenue: number;
+	averageRating: number;
+	reviewCount: number;
+}
+
+export interface VendorAnalytics {
+	vendorId: string;
+	totalProducts: number;
+	totalOrders: number;
+	totalRevenue: number;
+	averageOrderValue: number;
+	conversionRate: number;
+	customerCount: number;
+	repeatCustomerRate: number;
+	topProducts: ProductAnalytics[];
+	recentStreams: StreamAnalytics[];
+}
+
+export type Tuple = [Error?, string?];

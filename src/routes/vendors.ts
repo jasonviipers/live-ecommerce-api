@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { authMiddleware, requireVendorOrAdmin } from "@/middleware/auth";
 
-const vendors = new Hono();
+const vendorRoutes = new Hono();
 
 // Get all vendors
-vendors.get("/", async (c) => {
+vendorRoutes.get("/", async (c) => {
 	return c.json({
 		message: "Get all vendors",
 		vendors: [],
@@ -12,7 +12,7 @@ vendors.get("/", async (c) => {
 });
 
 // Get vendor by ID
-vendors.get("/:id", async (c) => {
+vendorRoutes.get("/:id", async (c) => {
 	const id = c.req.param("id");
 	return c.json({
 		message: `Get vendor ${id}`,
@@ -21,14 +21,14 @@ vendors.get("/:id", async (c) => {
 });
 
 // Create vendor
-vendors.post("/", authMiddleware, async (c) => {
+vendorRoutes.post("/", authMiddleware, async (c) => {
 	return c.json({
 		message: "Create vendor",
 	});
 });
 
 // Update vendor
-vendors.put("/:id", authMiddleware, requireVendorOrAdmin, async (c) => {
+vendorRoutes.put("/:id", authMiddleware, requireVendorOrAdmin, async (c) => {
 	const id = c.req.param("id");
 	return c.json({
 		message: `Update vendor ${id}`,
@@ -36,11 +36,11 @@ vendors.put("/:id", authMiddleware, requireVendorOrAdmin, async (c) => {
 });
 
 // Delete vendor
-vendors.delete("/:id", authMiddleware, requireVendorOrAdmin, async (c) => {
+vendorRoutes.delete("/:id", authMiddleware, requireVendorOrAdmin, async (c) => {
 	const id = c.req.param("id");
 	return c.json({
 		message: `Delete vendor ${id}`,
 	});
 });
 
-export default vendors;
+export default vendorRoutes;

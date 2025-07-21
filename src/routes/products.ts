@@ -18,10 +18,10 @@ import logger from "@/config/logger";
 import { createError } from "@/middleware/errorHandler";
 import VendorRepository from "@/repositories/vendor";
 
-const products = new Hono();
+const productRoutes = new Hono();
 
 // Get all products (public)
-products.get(
+productRoutes.get(
 	"/",
 	optionalAuthMiddleware,
 	zValidator("query", querySchema),
@@ -60,7 +60,7 @@ products.get(
 );
 
 // Get featured products (public)
-products.get("/featured", async (c) => {
+productRoutes.get("/featured", async (c) => {
 	try {
 		const limit = parseInt(c.req.query("limit") || "10");
 		const products = await ProductRepository.getFeaturedProducts(
@@ -78,7 +78,7 @@ products.get("/featured", async (c) => {
 });
 
 // Search products (public)
-products.get(
+productRoutes.get(
 	"/search",
 	zValidator(
 		"query",
@@ -140,7 +140,7 @@ products.get(
 );
 
 // Create product (vendor/admin only)
-products.post(
+productRoutes.post(
 	"/",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -199,7 +199,7 @@ products.post(
 );
 
 // Get single product (public)
-products.get("/:id", optionalAuthMiddleware, async (c) => {
+productRoutes.get("/:id", optionalAuthMiddleware, async (c) => {
 	try {
 		const id = c.req.param("id");
 		const product = await ProductRepository.findById(id);
@@ -222,7 +222,7 @@ products.get("/:id", optionalAuthMiddleware, async (c) => {
 });
 
 // Update product (vendor owner/admin only)
-products.put(
+productRoutes.put(
 	"/:id",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -271,45 +271,53 @@ products.put(
 );
 
 // Delete product (vendor owner/admin only)
-products.delete("/:id", authMiddleware, requireVendorOrAdmin, async (c) => {
-	try {
-		const user = c.get("user");
-		const id = c.req.param("id");
+productRoutes.delete(
+	"/:id",
+	authMiddleware,
+	requireVendorOrAdmin,
+	async (c) => {
+		try {
+			const user = c.get("user");
+			const id = c.req.param("id");
 
-		// Get existing product
-		const existingProduct = await ProductRepository.findById(id);
-		if (!existingProduct) {
-			throw createError.notFound("Product not found");
+			// Get existing product
+			const existingProduct = await ProductRepository.findById(id);
+			if (!existingProduct) {
+				throw createError.notFound("Product not found");
+			}
+
+			// Check ownership (vendors can only delete their own products)
+			if (
+				user.role === "vendor" &&
+				existingProduct.vendorId !== user.vendorId
+			) {
+				throw createError.forbidden("Access denied to this product");
+			}
+
+			const deleted = await ProductRepository.delete(id);
+
+			if (!deleted) {
+				throw createError.notFound("Product not found");
+			}
+
+			logger.info("Product deleted successfully", {
+				productId: id,
+				userId: user.id,
+			});
+
+			return c.json({
+				success: true,
+				message: "Product deleted successfully",
+			});
+		} catch (error) {
+			logger.error("Failed to delete product", error as Error);
+			throw error;
 		}
-
-		// Check ownership (vendors can only delete their own products)
-		if (user.role === "vendor" && existingProduct.vendorId !== user.vendorId) {
-			throw createError.forbidden("Access denied to this product");
-		}
-
-		const deleted = await ProductRepository.delete(id);
-
-		if (!deleted) {
-			throw createError.notFound("Product not found");
-		}
-
-		logger.info("Product deleted successfully", {
-			productId: id,
-			userId: user.id,
-		});
-
-		return c.json({
-			success: true,
-			message: "Product deleted successfully",
-		});
-	} catch (error) {
-		logger.error("Failed to delete product", error as Error);
-		throw error;
-	}
-});
+	},
+);
 
 // Update product inventory (vendor owner/admin only)
-products.patch(
+productRoutes.patch(
 	"/:id/inventory",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -363,7 +371,7 @@ products.patch(
 );
 
 // Get low stock products (vendor/admin only)
-products.get(
+productRoutes.get(
 	"/inventory/low-stock",
 	authMiddleware,
 	requireVendorOrAdmin,
@@ -386,7 +394,7 @@ products.get(
 );
 
 // Get vendor's products (vendor owner/admin only)
-products.get(
+productRoutes.get(
 	"/vendor/:vendorId",
 	authMiddleware,
 	zValidator("query", querySchema),
@@ -431,4 +439,4 @@ products.get(
 	},
 );
 
-export default products;
+export default productRoutes;
