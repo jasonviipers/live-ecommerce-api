@@ -142,10 +142,16 @@ const querySchema = z.object({
 		.transform((val) => (val ? parseFloat(val) : undefined))
 		.optional(),
 	sortBy: z
-		.enum(["created_at", "price", "name", "view_count", "like_count"])
+		.enum(["created_at", "price", "name", "view_count", "like_count", "title"])
 		.default("created_at"),
 	sortOrder: z.enum(["asc", "desc"]).default("desc"),
 	isLive: z
+		.string()
+		.transform((val) =>
+			val === "true" ? true : val === "false" ? false : undefined,
+		)
+		.optional(),
+	isPublic: z
 		.string()
 		.transform((val) =>
 			val === "true" ? true : val === "false" ? false : undefined,
@@ -245,6 +251,24 @@ const uploadOptionsSchema = z.object({
 		.optional(),
 });
 
+const createVideoSchema = z.object({
+	title: z.string().min(1, "Video title is required").max(255),
+	description: z.string().max(1000).optional(),
+	videoUrl: z.string().url("Invalid video URL"),
+	thumbnailUrl: z.string().url().optional(),
+	duration: z.number().min(0, "Duration must be non-negative"),
+	fileSize: z.number().min(0, "File size must be non-negative"),
+	resolution: z.string().min(1, "Resolution is required"),
+	format: z.string().min(1, "Format is required"),
+	isPublic: z.boolean().default(true),
+	tags: z.array(z.string()).default([]),
+	metadata: z.record(z.any()).optional(),
+});
+
+const updateVideoSchema = createVideoSchema.partial().extend({
+	status: z.enum(["processing", "ready", "failed"]).optional(),
+});
+
 export {
 	registerSchema,
 	loginSchema,
@@ -268,4 +292,6 @@ export {
 	createStreamSchema,
 	updateStreamSchema,
 	uploadOptionsSchema,
+	createVideoSchema,
+	updateVideoSchema,
 };
