@@ -453,22 +453,7 @@ uploads.get(
 	async (c) => {
 		try {
 			const user = c.get("user");
-
-			// Get user's media statistics
-			const result = await MediaService.getMediaByUser(user.id, 1, 1000);
-
-			const stats = {
-				totalFiles: result.total,
-				totalSize: result.files.reduce((sum, file) => sum + file.size, 0),
-				imageCount: result.files.filter((f) => f.mimeType.startsWith("image/"))
-					.length,
-				videoCount: result.files.filter((f) => f.mimeType.startsWith("video/"))
-					.length,
-				processingCount: result.files.filter((f) => f.status === "processing")
-					.length,
-				readyCount: result.files.filter((f) => f.status === "ready").length,
-				failedCount: result.files.filter((f) => f.status === "failed").length,
-			};
+			const stats = await MediaService.getMediaStatsByUser(user.id);
 
 			return c.json({
 				success: true,
