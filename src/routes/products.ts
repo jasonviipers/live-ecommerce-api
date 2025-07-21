@@ -150,20 +150,13 @@ productRoutes.post(
 			const user = c.get("user");
 			const data = c.req.valid("json");
 
-			// Get vendor ID
-			let vendorId: string;
-			if (user.role === "admin") {
-				// Admin can specify vendor ID or use their own if they have one
-				vendorId = user.vendorId!;
-				if (!vendorId) {
-					throw createError.badRequest("Vendor ID is required for admin users");
-				}
-			} else {
-				// Vendor can only create products for their own store
-				if (!user.vendorId) {
-					throw createError.forbidden("Vendor account required");
-				}
-				vendorId = user.vendorId;
+			const vendorId = user.vendorId;
+			if (!vendorId) {
+				throw createError[user.role === "admin" ? "badRequest" : "forbidden"](
+					user.role === "admin"
+						? "Vendor ID is required for admin users"
+						: "Vendor account required",
+				);
 			}
 
 			// Verify vendor exists and is active

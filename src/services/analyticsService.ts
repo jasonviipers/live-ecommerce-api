@@ -8,6 +8,7 @@ import {
 	TrackEventData,
 	VendorAnalytics,
 	Tuple,
+	RealTimeMetrics,
 } from "@/types";
 import { getRedisClient } from "@/database/redis";
 
@@ -369,7 +370,7 @@ export class AnalyticsService {
 	}
 
 	// Get real-time metrics from Redis
-	static async getRealTimeMetrics(): Promise<any> {
+	static async getRealTimeMetrics(): Promise<RealTimeMetrics> {
 		try {
 			const keys = [
 				"analytics:active_users",

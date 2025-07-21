@@ -196,18 +196,13 @@ videos.post(
 			const user = c.get("user");
 			const data = c.req.valid("json");
 
-			// Get vendor ID
-			let vendorId: string;
-			if (user.role === "admin") {
-				vendorId = user.vendorId!;
-				if (!vendorId) {
-					throw createError.badRequest("Vendor ID is required for admin users");
-				}
-			} else {
-				if (!user.vendorId) {
-					throw createError.forbidden("Vendor account required");
-				}
-				vendorId = user.vendorId;
+			const vendorId = user.vendorId;
+			if (!vendorId) {
+				throw createError[user.role === "admin" ? "badRequest" : "forbidden"](
+					user.role === "admin"
+						? "Vendor ID is required for admin users"
+						: "Vendor account required",
+				);
 			}
 
 			const video = await VideoRepository.create({

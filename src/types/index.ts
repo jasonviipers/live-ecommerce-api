@@ -552,3 +552,11 @@ export interface VendorAnalytics {
 }
 
 export type Tuple = [Error?, string?];
+
+export interface RealTimeMetrics {
+	activeUsers: number;
+	pageViewsToday: number;
+	ordersToday: number;
+	revenueToday: number;
+	activeStreams: number;
+}

@@ -15,6 +15,13 @@ import {
 	vendorAnalyticsSchema,
 } from "@/utils/validation";
 import AnalyticsService from "@/services/analyticsService";
+import { AnalyticsMetrics, RealTimeMetrics, VendorAnalytics } from "@/types";
+
+interface IDashboardData {
+	general?: AnalyticsMetrics;
+	vendor?: VendorAnalytics;
+	realtime?: RealTimeMetrics;
+}
 
 type Env = {
 	Bindings: {
@@ -365,7 +372,7 @@ analyticsRoutes.get(
 			const dateTo = query.dateTo ? new Date(query.dateTo) : undefined;
 
 			// Get different analytics based on user role
-			let dashboardData: any = {};
+			let dashboardData: IDashboardData = {};
 
 			if (user.role === "admin" && !vendorId) {
 				// Admin dashboard - general metrics
