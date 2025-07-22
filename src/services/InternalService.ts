@@ -288,10 +288,7 @@ export class InternalService extends EventEmitter {
 	}
 
 	// Subscribe to internal events
-	subscribeToEvent(
-		eventType: string,
-		handler: (event: ServiceEvent) => void,
-	): void {
+	subscribeToEvent(eventType: string, handler: EventHandler): void {
 		if (!this.eventHandlers.has(eventType)) {
 			this.eventHandlers.set(eventType, []);
 		}

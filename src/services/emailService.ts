@@ -1,6 +1,7 @@
 import { config } from "@/config";
 import logger from "@/config/logger";
 import { emailTransporter } from "@/utils/email";
+import { welcomeTemplate } from "@/utils/email/templates/welcome";
 
 export class EmailService {
 	private static async sendEmail(emailOptions: {
@@ -22,16 +23,20 @@ export class EmailService {
 	}
 
 	static async sendWelcomeEmail(
-		userId: string,
-		userData: { firstName: string; lastName: string },
-		verificationLink?: string,
+		user: { firstName: string; lastName: string; email: string },
+		verificationLink: string,
 	) {
-		// TODO: send welcome email
-		logger.info("Welcome email sent", { userId });
+		const emailOptions = welcomeTemplate(user, verificationLink);
+		return EmailService.sendEmail({
+			to: user.email,
+			subject: emailOptions.subject,
+			html: emailOptions.body,
+			text: emailOptions.body,
+		});
 	}
 
 	static async sendPasswordResetEmail(
-		user: { name: string; email: string },
+		user: { firstName: string; lastName: string; email: string },
 		resetLink: string,
 	) {
 		// TODO: send password reset email
