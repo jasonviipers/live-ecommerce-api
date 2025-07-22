@@ -4,6 +4,7 @@ import { logger } from "../config/logger";
 import { config } from "../config";
 import { getRedisClient } from "@/database/redis";
 import { getWebhookService } from "./webhookService";
+import EmailService from "./emailService";
 
 export interface ServiceEvent {
 	id: string;
@@ -48,10 +49,11 @@ export interface ServiceRegistry {
 		}
 	>;
 }
+export type EventHandler = (event: ServiceEvent) => void | Promise<void>;
 
 export class InternalService extends EventEmitter {
 	private serviceRegistry: ServiceRegistry["services"] = new Map();
-	private eventHandlers: Map<string, Function[]> = new Map();
+	private eventHandlers: Map<string, EventHandler[]> = new Map();
 	private readonly SERVICE_NAME = "live-streaming-api";
 	private readonly SERVICE_VERSION = "1.0.0";
 	private heartbeatInterval?: NodeJS.Timeout;
@@ -300,7 +302,7 @@ export class InternalService extends EventEmitter {
 	}
 
 	// Unsubscribe from internal events
-	unsubscribeFromEvent(eventType: string, handler: Function): void {
+	unsubscribeFromEvent(eventType: string, handler: EventHandler): void {
 		const handlers = this.eventHandlers.get(eventType);
 
 		if (handlers) {
@@ -370,7 +372,7 @@ export class InternalService extends EventEmitter {
 			const { orderId, trackingInfo } = event.data;
 
 			// Send shipping confirmation email
-			await this.sendShippingConfirmationEmail(orderId, trackingInfo);
+			await EmailService.sendShippingConfirmationEmail(orderId, trackingInfo);
 
 			// Update order status in analytics
 			await this.trackOrderShipped(orderId, trackingInfo);
@@ -386,7 +388,7 @@ export class InternalService extends EventEmitter {
 			const { orderId } = event.data;
 
 			// Send delivery confirmation email
-			await this.sendDeliveryConfirmationEmail(orderId);
+			await EmailService.sendDeliveryConfirmationEmail(orderId);
 
 			// Update order status in analytics
 			await this.trackOrderDelivered(orderId);
@@ -493,7 +495,7 @@ export class InternalService extends EventEmitter {
 			const { userId, userData } = event.data;
 
 			// Send welcome email
-			await this.sendWelcomeEmail(userId, userData);
+			await EmailService.sendWelcomeEmail(userId, userData);
 
 			// Create user analytics profile
 			await this.createUserAnalyticsProfile(userId);
@@ -637,14 +639,6 @@ export class InternalService extends EventEmitter {
 	}
 
 	// Helper methods (simplified implementations)
-	private async sendShippingConfirmationEmail(
-		orderId: string,
-		trackingInfo: any,
-	): Promise<void> {
-		//TODO: Implementation would send shipping confirmation email
-
-		logger.info("Shipping confirmation email sent", { orderId, trackingInfo });
-	}
 
 	private async trackOrderShipped(
 		orderId: string,
@@ -652,11 +646,6 @@ export class InternalService extends EventEmitter {
 	): Promise<void> {
 		//TODO: Implementation would track order shipped in analytics
 		logger.info("Order shipped tracked", { orderId });
-	}
-
-	private async sendDeliveryConfirmationEmail(orderId: string): Promise<void> {
-		//TODO: Implementation would send delivery confirmation email
-		logger.info("Delivery confirmation email sent", { orderId });
 	}
 
 	private async trackOrderDelivered(orderId: string): Promise<void> {
@@ -743,11 +732,6 @@ export class InternalService extends EventEmitter {
 	): Promise<void> {
 		//TODO: Implementation would track payment failed in analytics
 		logger.info("Payment failed tracked", { paymentId, orderId, errorCode });
-	}
-
-	private async sendWelcomeEmail(userId: string, userData: any): Promise<void> {
-		// Implementation would send actual email
-		logger.info("Welcome email sent", { userId });
 	}
 
 	private async createUserAnalyticsProfile(userId: string): Promise<void> {

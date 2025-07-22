@@ -1,0 +1,53 @@
+import { config } from "@/config";
+import logger from "@/config/logger";
+import { emailTransporter } from "@/utils/email";
+
+export class EmailService {
+	private static async sendEmail(emailOptions: {
+		to: string;
+		subject: string;
+		html: string;
+		text: string;
+	}) {
+		try {
+			await emailTransporter.sendMail({
+				from: config.email.from,
+				...emailOptions,
+			});
+			return true;
+		} catch (error) {
+			logger.error("Error sending email", error);
+			return false;
+		}
+	}
+
+	static async sendWelcomeEmail(
+		userId: string,
+		userData: { firstName: string; lastName: string },
+		verificationLink?: string,
+	) {
+		// TODO: send welcome email
+		logger.info("Welcome email sent", { userId });
+	}
+
+	static async sendPasswordResetEmail(
+		user: { name: string; email: string },
+		resetLink: string,
+	) {
+		// TODO: send password reset email
+	}
+
+	static async sendShippingConfirmationEmail(
+		orderId: string,
+		trackingInfo: unknown,
+	): Promise<void> {
+		//TODO: Implementation would send shipping confirmation email
+		logger.info("Shipping confirmation email sent", { orderId, trackingInfo });
+	}
+
+	static async sendDeliveryConfirmationEmail(orderId: string): Promise<void> {
+		//TODO: Implementation would send delivery confirmation email
+		logger.info("Delivery confirmation email sent", { orderId });
+	}
+}
+export default EmailService;

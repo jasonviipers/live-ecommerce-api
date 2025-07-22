@@ -38,6 +38,7 @@ import paymentRoutes from "./routes/payments";
 import uploadRoutes from "./routes/uploads";
 import notificationRoutes from "./routes/notifications";
 import { getMediaServerService } from "./services/mediaServerService";
+import { getInternalService } from "./services/InternalService";
 
 const app = new Hono();
 
@@ -129,7 +130,8 @@ const startServer = async () => {
 
 		// Initialize Internal Service
 		logger.info("🔧 Initializing Internal Service...");
-		
+		await getInternalService();
+
 		fire(app);
 	} catch (error) {
 		logger.error("Failed to start server", error as Error);
