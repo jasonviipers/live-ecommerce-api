@@ -30,8 +30,8 @@ export class EmailService {
 		return EmailService.sendEmail({
 			to: user.email,
 			subject: emailOptions.subject,
-			html: emailOptions.body,
-			text: emailOptions.body,
+			html: emailOptions.html,
+			text: emailOptions.text,
 		});
 	}
 
