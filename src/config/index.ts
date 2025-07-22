@@ -97,6 +97,9 @@ const envSchema = z.object({
 	// Commission Configuration
 	DEFAULT_COMMISSION_RATE: z.string().default("0.05").transform(Number),
 	PLATFORM_FEE_RATE: z.string().default("0.02").transform(Number),
+
+	// Internal API Key for service-to-service communication
+	INTERNAL_API_KEY: z.string().min(32),
 });
 
 // Validate environment variables
@@ -231,6 +234,10 @@ export const config = {
 	commission: {
 		defaultRate: env.DEFAULT_COMMISSION_RATE,
 		platformFeeRate: env.PLATFORM_FEE_RATE,
+	},
+
+	internal: {
+		apiKey: env.INTERNAL_API_KEY,
 	},
 } as const;
 

@@ -301,4 +301,26 @@ export const verifyRefreshToken = async (
 	return toJWTPayload(payload);
 };
 
+/* ------------------------------------------------------------------ */
+/* 9.  Internal service authentication                                  */
+/* ------------------------------------------------------------------ */
+export const internalServiceAuthMiddleware = async (c: Context, next: Next) => {
+	try {
+		const apiKey = c.req.header("x-api-key");
+
+		if (!apiKey) {
+			throw createError.unauthorized("API key is required");
+		}
+
+		if (apiKey !== config.internal.apiKey) {
+			throw createError.forbidden("Invalid API key");
+		}
+
+		await next();
+	} catch (error) {
+		logger.warn("Internal service authentication failed", { error });
+		throw error;
+	}
+};
+
 export default authMiddleware;

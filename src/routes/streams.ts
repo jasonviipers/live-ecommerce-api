@@ -6,6 +6,7 @@ import {
 	optionalAuthMiddleware,
 	requireVendorOrAdmin,
 	requireAuthenticated,
+	internalServiceAuthMiddleware,
 } from "../middleware/auth";
 import { createError } from "@/middleware/errorHandler";
 import { logger } from "@/config/logger";
@@ -344,6 +345,7 @@ streamRoutes.post(
 // Update viewer count (internal/webhook)
 streamRoutes.patch(
 	"/:id/viewers",
+	internalServiceAuthMiddleware,
 	zValidator(
 		"json",
 		z.object({
@@ -354,8 +356,6 @@ streamRoutes.patch(
 		try {
 			const id = c.req.param("id");
 			const { viewerCount } = c.req.valid("json");
-
-			// TODO: Add authentication for internal services/webhooks
 
 			const updated = await StreamRepository.updateViewerCount(id, viewerCount);
 
