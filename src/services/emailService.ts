@@ -49,5 +49,18 @@ export class EmailService {
 		//TODO: Implementation would send delivery confirmation email
 		logger.info("Delivery confirmation email sent", { orderId });
 	}
+
+	static async sendPaymentConfirmationEmail(orderId: string): Promise<void> {
+		//TODO: Implementation would send payment confirmation email
+		logger.info("Payment confirmation email sent", { orderId });
+	}
+
+	static async sendOrderConfirmationEmail(
+		orderId: string,
+		orderData: any,
+	): Promise<void> {
+		//TODO: Implementation would send order confirmation email
+		logger.info("Order confirmation email sent", { orderId });
+	}
 }
 export default EmailService;

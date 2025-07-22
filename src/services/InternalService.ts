@@ -539,7 +539,7 @@ export class InternalService extends EventEmitter {
 			const { orderId, orderData } = event.data;
 
 			// Send order confirmation email
-			await this.sendOrderConfirmationEmail(orderId, orderData);
+			await EmailService.sendOrderConfirmationEmail(orderId, orderData);
 
 			// Update inventory
 			await this.updateInventoryForOrder(orderId, orderData);
@@ -558,7 +558,7 @@ export class InternalService extends EventEmitter {
 			const { orderId } = event.data;
 
 			// Send payment confirmation email
-			await this.sendPaymentConfirmationEmail(orderId);
+			await EmailService.sendPaymentConfirmationEmail(orderId);
 
 			// Notify vendor
 			await this.notifyVendorOfPaidOrder(orderId);
@@ -639,7 +639,6 @@ export class InternalService extends EventEmitter {
 	}
 
 	// Helper methods (simplified implementations)
-
 	private async trackOrderShipped(
 		orderId: string,
 		trackingInfo: any,
@@ -752,14 +751,6 @@ export class InternalService extends EventEmitter {
 		logger.info("User data cleaned up", { userId });
 	}
 
-	private async sendOrderConfirmationEmail(
-		orderId: string,
-		orderData: any,
-	): Promise<void> {
-		//TODO: Implementation would send order confirmation email
-		logger.info("Order confirmation email sent", { orderId });
-	}
-
 	private async updateInventoryForOrder(
 		orderId: string,
 		orderData: any,
@@ -779,11 +770,6 @@ export class InternalService extends EventEmitter {
 	private async trackOrderPaid(orderId: string): Promise<void> {
 		//TODO: Implementation would track analytics
 		logger.info("Order paid tracked", { orderId });
-	}
-
-	private async sendPaymentConfirmationEmail(orderId: string): Promise<void> {
-		//TODO: Implementation would send payment confirmation email
-		logger.info("Payment confirmation email sent", { orderId });
 	}
 
 	private async notifyVendorOfPaidOrder(orderId: string): Promise<void> {
