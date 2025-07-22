@@ -17,5 +17,8 @@ Thank you for registering with Live Ecommerce. Please verify your email address 
 
 ${verificationLink}
 
-If you did not register with Live Ecommerce, please ignore this email.`,
+If you did not register with Live Ecommerce, please ignore this email.
+
+  © ${new Date().getFullYear()} Live Ecommerce. All rights reserved.
+`,
 });

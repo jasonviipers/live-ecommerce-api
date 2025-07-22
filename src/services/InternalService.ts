@@ -80,11 +80,12 @@ export class InternalService extends EventEmitter {
 	private async registerService(): Promise<void> {
 		try {
 			const health = await this.getServiceHealth();
+			const endpoint = this.determineServiceEndpoint();
 
 			const serviceInfo = {
 				name: this.SERVICE_NAME,
 				version: this.SERVICE_VERSION,
-				endpoint: `http://localhost:${config.server.port}`,
+				endpoint,
 				health,
 				lastHeartbeat: new Date(),
 			};
@@ -107,6 +108,20 @@ export class InternalService extends EventEmitter {
 		} catch (error) {
 			logger.error("Failed to register service", error as Error);
 		}
+	}
+
+	private determineServiceEndpoint(): string {
+		if (config.server.publicUrl) {
+			return config.server.publicUrl;
+		}
+
+		// In production, use the hostname environment variable if available
+		if (config.server.isProduction && process.env.HOSTNAME) {
+			return `http://${process.env.HOSTNAME}:${config.server.port}`;
+		}
+
+		// Default fallback to localhost with configured port
+		return `http://localhost:${config.server.port}`;
 	}
 
 	// Start heartbeat to maintain service registration
