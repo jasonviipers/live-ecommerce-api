@@ -609,3 +609,63 @@ export interface WebhookDelivery {
 	nextRetryAt?: Date;
 	createdAt: Date;
 }
+
+export interface TrackingInfo {
+	trackingNumber: string;
+	carrier: string;
+	estimatedDelivery?: string;
+	shippingDate: string;
+	recipientName: string;
+	recipientEmail: string;
+	shippingAddress: {
+		street: string;
+		city: string;
+		state: string;
+		zipCode: string;
+		country: string;
+	};
+	trackingUrl?: string;
+	orderItems?: Array<{
+		name: string;
+		quantity: number;
+		price: number;
+	}>;
+}
+
+export interface OrderData {
+	orderId: string;
+	customerName: string;
+	customerEmail: string;
+	orderDate: string;
+	items: Array<{
+		id: string;
+		name: string;
+		description?: string;
+		quantity: number;
+		price: number;
+		imageUrl?: string;
+	}>;
+	subtotal: number;
+	tax: number;
+	shipping: number;
+	total: number;
+	billingAddress: {
+		street: string;
+		city: string;
+		state: string;
+		zipCode: string;
+		country: string;
+	};
+	shippingAddress: {
+		street: string;
+		city: string;
+		state: string;
+		zipCode: string;
+		country: string;
+	};
+	paymentMethod: {
+		type: string;
+		last4?: string;
+	};
+	estimatedDelivery?: string;
+}
