@@ -118,7 +118,7 @@ export class InternalService extends EventEmitter {
 			const serviceInfo = {
 				name: this.SERVICE_NAME,
 				version: this.SERVICE_VERSION,
-				endpoint: `http://localhost:${config.server.port}`,
+				endpoint: this.determineServiceEndpoint(),
 				health,
 				lastHeartbeat: new Date(),
 			};
@@ -817,25 +817,33 @@ export class InternalService extends EventEmitter {
 
 	// Database operations
 	private async storeServiceEvent(event: ServiceEvent): Promise<void> {
-		const sql = `
+		try {
+			const sql = `
       INSERT INTO service_events (
         id, service, type, data, timestamp, correlation_id, user_id, metadata
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `;
 
-		const values = [
-			event.id,
-			event.service,
-			event.type,
-			JSON.stringify(event.data),
-			event.timestamp,
-			event.correlationId || null,
-			event.userId || null,
-			event.metadata ? JSON.stringify(event.metadata) : null,
-		];
+			const values = [
+				event.id,
+				event.service,
+				event.type,
+				JSON.stringify(event.data),
+				event.timestamp,
+				event.correlationId || null,
+				event.userId || null,
+				event.metadata ? JSON.stringify(event.metadata) : null,
+			];
 
-		await query(sql, values);
+			await query(sql, values);
+		} catch (error) {
+			logger.error("Failed to store service event", {
+				eventId: event.id,
+				error,
+			});
+			throw error;
+		}
 	}
 
 	private async loadServiceRegistry(): Promise<void> {
