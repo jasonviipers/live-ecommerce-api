@@ -117,15 +117,16 @@ export class InternalService extends EventEmitter {
 
 	// Get CPU usage using Node.js process.cpuUsage()
 	private getCpuUsage(): number {
-		try {
+			try {
 			if (!this.lastCpuUsage) {
 				this.lastCpuUsage = process.cpuUsage();
 				this.lastCpuTime = process.hrtime.bigint();
-				return 0
+				return 0;
 			}
 			const currentUsage = process.cpuUsage(this.lastCpuUsage);
 			const currentTime = process.hrtime.bigint();
-			const timeDiff = Number(currentTime - (this.lastCpuTime || BigInt(0))) / 1000000; // ms
+			const timeDiff =
+				Number(currentTime - (this.lastCpuTime || BigInt(0))) / 1000000; // ms
 
 			const cpuTime = (currentUsage.user + currentUsage.system) / 1000; // ms
 			const cpuPercent = timeDiff > 0 ? (cpuTime / timeDiff) * 100 : 0;
@@ -138,6 +139,7 @@ export class InternalService extends EventEmitter {
 			logger.warn("Failed to calculate CPU usage", error as Error);
 			return 0;
 		}
+	}
 	}
 
 	private async registerService(): Promise<void> {
