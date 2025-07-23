@@ -28,6 +28,8 @@ export class InternalService extends EventEmitter {
 	private eventHandlers: Map<string, EventHandler[]> = new Map();
 	private serviceRegistry: ServiceRegistry = { services: new Map() };
 	private heartbeatInterval?: NodeJS.Timeout; // Add this property
+	private lastCpuUsage?: NodeJS.CpuUsage;
+	private lastCpuTime?: bigint;
 
 	// Metrics tracking properties
 	private requestCount = 0;
@@ -116,22 +118,22 @@ export class InternalService extends EventEmitter {
 	// Get CPU usage using Node.js process.cpuUsage()
 	private getCpuUsage(): number {
 		try {
-			const startUsage = process.cpuUsage();
-			// Use a small delay to measure CPU usage
-			const startTime = process.hrtime.bigint();
+			if (!this.lastCpuUsage) {
+				this.lastCpuUsage = process.cpuUsage();
+				this.lastCpuTime = process.hrtime.bigint();
+				return 0
+			}
+			const currentUsage = process.cpuUsage(this.lastCpuUsage);
+			const currentTime = process.hrtime.bigint();
+			const timeDiff = Number(currentTime - (this.lastCpuTime || BigInt(0))) / 1000000; // ms
 
-			// Perform a small computation to get a reading
-			setTimeout(() => {}, 0);
+			const cpuTime = (currentUsage.user + currentUsage.system) / 1000; // ms
+			const cpuPercent = timeDiff > 0 ? (cpuTime / timeDiff) * 100 : 0;
 
-			const endTime = process.hrtime.bigint();
-			const endUsage = process.cpuUsage(startUsage);
+			this.lastCpuUsage = process.cpuUsage();
+			this.lastCpuTime = process.hrtime.bigint();
 
-			// Calculate CPU usage percentage
-			const totalTime = Number(endTime - startTime) / 1000000; // Convert to milliseconds
-			const cpuTime = (endUsage.user + endUsage.system) / 1000; // Convert to milliseconds
-
-			const cpuPercent = totalTime > 0 ? (cpuTime / totalTime) * 100 : 0;
-			return Math.round(Math.min(cpuPercent, 100) * 100) / 100; // Cap at 100% and round to 2 decimal places
+			return Math.round(Math.min(cpuPercent, 100) * 100) / 100;
 		} catch (error) {
 			logger.warn("Failed to calculate CPU usage", error as Error);
 			return 0;
