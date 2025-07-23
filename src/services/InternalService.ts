@@ -5,8 +5,9 @@ import { config } from "../config";
 import { getRedisClient } from "@/database/redis";
 import { getWebhookService } from "./webhookService";
 import EmailService from "./emailService";
-import { ServiceHealth, ServiceRegistry } from "@/types";
+import { OrderShippedEvent, ServiceHealth, ServiceRegistry } from "@/types";
 import { createId } from "@paralleldrive/cuid2";
+import AnalyticsService from "./analyticsService";
 
 export interface ServiceEvent {
 	id: string;
@@ -115,7 +116,6 @@ export class InternalService extends EventEmitter {
 		); // Percentage with 2 decimal places
 	}
 
-	// Get CPU usage using Node.js process.cpuUsage()
 	private getCpuUsage(): number {
 		try {
 			if (!this.lastCpuUsage) {
@@ -456,7 +456,7 @@ export class InternalService extends EventEmitter {
 			await EmailService.sendShippingConfirmationEmail(orderId, trackingInfo);
 
 			// Update order status in analytics
-			await this.trackOrderShipped(orderId, trackingInfo);
+			await this.trackOrderShipped({ orderId, trackingInfo });
 
 			logger.info("Order shipped event handled", { orderId });
 		} catch (error) {
@@ -725,12 +725,37 @@ export class InternalService extends EventEmitter {
 	}
 
 	// Helper methods (simplified implementations)
-	private async trackOrderShipped(
-		orderId: string,
-		trackingInfo: any,
-	): Promise<void> {
-		//TODO: Implementation would track order shipped in analytics
-		logger.info("Order shipped tracked", { orderId });
+	private async trackOrderShipped(data: OrderShippedEvent): Promise<void> {
+		try {
+			await AnalyticsService.trackEvent({
+				eventType: "ecommerce",
+				eventCategory: "order",
+				eventAction: "shipped",
+				eventLabel: data.orderId,
+				properties: {
+					orderId: data.orderId,
+					trackingNumber: data.trackingInfo?.trackingNumber,
+					carrier: data.trackingInfo?.carrier,
+					estimatedDelivery: data.trackingInfo?.estimatedDelivery,
+					shippingDate:
+						data.trackingInfo?.shippingDate || new Date().toISOString(),
+					recipientName: data.trackingInfo?.recipientName,
+					recipientEmail: data.trackingInfo?.recipientEmail,
+					shippingAddress: data.trackingInfo?.shippingAddress,
+					orderItems: data.trackingInfo?.orderItems,
+				},
+			});
+			logger.info("Order shipped tracked in analytics", {
+				orderId: data.orderId,
+				trackingNumber: data.trackingInfo?.trackingNumber,
+			});
+		} catch (error) {
+			logger.error("Failed to track order shipped in analytics", {
+				orderId: data.orderId,
+				trackingNumber: data.trackingInfo?.trackingNumber,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
 	}
 
 	private async trackOrderDelivered(orderId: string): Promise<void> {
@@ -860,7 +885,6 @@ export class InternalService extends EventEmitter {
 
 	private async notifyVendorOfPaidOrder(orderId: string): Promise<void> {
 		//TODO: Implementation would notify vendor
-		logger.info("Vendor notified of paid order", { orderId });
 	}
 
 	private async notifyFollowersOfStream(
@@ -868,7 +892,6 @@ export class InternalService extends EventEmitter {
 		streamKey: string,
 	): Promise<void> {
 		//TODO: Implementation would notify followers
-		logger.info("Followers notified of stream", { streamerId, streamKey });
 	}
 
 	private async trackStreamStarted(
@@ -876,7 +899,6 @@ export class InternalService extends EventEmitter {
 		streamerId: string,
 	): Promise<void> {
 		//TODO: Implementation would track analytics
-		logger.info("Stream started tracked", { streamKey, streamerId });
 	}
 
 	private async processStreamAnalytics(
@@ -886,12 +908,6 @@ export class InternalService extends EventEmitter {
 		viewerCount: number,
 	): Promise<void> {
 		//TODO: Implementation would process stream analytics
-		logger.info("Stream analytics processed", {
-			streamKey,
-			streamerId,
-			duration,
-			viewerCount,
-		});
 	}
 
 	private async notifyVendorOfLowStock(
@@ -900,11 +916,6 @@ export class InternalService extends EventEmitter {
 		threshold: number,
 	): Promise<void> {
 		//TODO: Implementation would notify vendor
-		logger.info("Vendor notified of low stock", {
-			productId,
-			currentStock,
-			threshold,
-		});
 	}
 
 	private async trackLowStockEvent(
@@ -912,7 +923,6 @@ export class InternalService extends EventEmitter {
 		currentStock: number,
 	): Promise<void> {
 		//TODO: Implementation would track analytics
-		logger.info("Low stock event tracked", { productId, currentStock });
 	}
 
 	// Database operations
@@ -948,7 +958,6 @@ export class InternalService extends EventEmitter {
 
 	private async loadServiceRegistry(): Promise<void> {
 		try {
-			// Load from Redis
 			const redisClient = getRedisClient();
 			const services = await redisClient.hGetAll("service_registry");
 
@@ -982,12 +991,10 @@ export class InternalService extends EventEmitter {
 		}
 	}
 
-	// Get service registry
 	getServiceRegistry(): ServiceRegistry["services"] {
 		return this.serviceRegistry.services;
 	}
 
-	// Get service health
 	async getHealth(): Promise<ServiceHealth> {
 		return await this.getServiceHealth();
 	}
@@ -1116,7 +1123,6 @@ export class InternalService extends EventEmitter {
 	}
 }
 
-// Create singleton instance
 let internalService: InternalService | null = null;
 
 export const getInternalService = async (): Promise<InternalService> => {
