@@ -702,3 +702,49 @@ export interface ServiceRegistry {
 		}
 	>;
 }
+
+export type PaymentConfirmationData = {
+	orderId: string;
+	paymentData: {
+		customerName: string;
+		customerEmail: string;
+		amount: number;
+		currency: string;
+		paymentMethod: {
+			type: string;
+			last4?: string;
+		};
+		transactionId: string;
+		paymentDate: Date;
+		orderItems: Array<{
+			name: string;
+			quantity: number;
+			price: number;
+		}>;
+	};
+};
+
+export type DeliveryConfirmationData = {
+	orderId: string;
+	deliveryData: {
+		customerName: string;
+		customerEmail: string;
+		deliveryDate: Date;
+		deliveryAddress: {
+			street: string;
+			city: string;
+			state: string;
+			zipCode: string;
+			country: string;
+		};
+		orderItems: Array<{
+			name: string;
+			quantity: number;
+			price: number;
+		}>;
+		totalAmount: number;
+		trackingNumber?: string;
+		carrier?: string;
+		deliveryNotes?: string;
+	};
+};

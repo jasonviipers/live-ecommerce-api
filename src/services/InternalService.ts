@@ -571,9 +571,14 @@ export class InternalService extends EventEmitter {
 	private async handleUserCreated(event: ServiceEvent): Promise<void> {
 		try {
 			const { userId, userData } = event.data;
+			const user = {
+				firstName: userData.firstName,
+				lastName: userData.lastName,
+				email: userData.email,
+			};
 
-			// Send welcome email
-			await EmailService.sendWelcomeEmail(userId, userData);
+			const verificationLink = `${config.server.publicUrl}/verify-email?token=${userData.verificationToken}`;
+			await EmailService.sendWelcomeEmail(user, verificationLink);
 
 			// Create user analytics profile
 			await this.createUserAnalyticsProfile(userId);

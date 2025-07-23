@@ -1,4 +1,9 @@
-import { OrderData, TrackingInfo } from "@/types";
+import {
+	DeliveryConfirmationData,
+	OrderData,
+	PaymentConfirmationData,
+	TrackingInfo,
+} from "@/types";
 import { formatDisplayDate } from "@/utils/date";
 
 export const welcomeTemplate = (
@@ -287,5 +292,211 @@ If you have any questions about your order, please don't hesitate to contact our
 Thank you for choosing Live Ecommerce!
 
 © ${new Date().getFullYear()} Live Ecommerce. All rights reserved.
+	`,
+});
+
+export const sendPaymentConfirmationEmail = (
+	data: PaymentConfirmationData,
+) => ({
+	to: data.paymentData.customerEmail,
+	subject: `Payment Confirmation for Order #${data.orderId} - Live Ecommerce`,
+	html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+			<h2 style="color: #4CAF50; text-align: center;">Payment Confirmed</h2>
+			
+			<p>Hello ${data.paymentData.customerName},</p>
+			
+			<p>Great news! We've successfully received your payment for order #${data.orderId}. Your order is now being processed and will be shipped soon.</p>
+			
+			<div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+				<h3 style="margin-top: 0; color: #2e7d32;">Payment Details</h3>
+				<p><strong>Order Number:</strong> #${data.orderId}</p>
+				<p><strong>Transaction ID:</strong> ${data.paymentData.transactionId}</p>
+				<p><strong>Payment Date:</strong> ${formatDisplayDate(data.paymentData.paymentDate)}</p>
+				<p><strong>Amount Paid:</strong> ${data.paymentData.currency.toUpperCase()} $${data.paymentData.amount.toFixed(2)}</p>
+				<p><strong>Payment Method:</strong> ${data.paymentData.paymentMethod.type}${data.paymentData.paymentMethod.last4 ? ` ending in ${data.paymentData.paymentMethod.last4}` : ""}</p>
+			</div>
+			
+			<div style="background-color: #fff; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0;">
+				<h3 style="margin: 0; padding: 15px; background-color: #f8f9fa; border-bottom: 1px solid #ddd; border-radius: 8px 8px 0 0; color: #333;">Order Items</h3>
+				<div style="padding: 15px;">
+					${data.paymentData.orderItems
+						.map(
+							(item) => `
+						<div style="border-bottom: 1px solid #eee; padding: 10px 0; display: flex; justify-content: space-between; align-items: center;">
+							<div>
+								<h4 style="margin: 0 0 5px 0; color: #333;">${item.name}</h4>
+								<p style="margin: 0; color: #666;">Quantity: ${item.quantity}</p>
+							</div>
+							<div style="text-align: right;">
+								<p style="margin: 0; font-weight: bold; color: #333;">$${(item.price * item.quantity).toFixed(2)}</p>
+								<p style="margin: 0; color: #666; font-size: 14px;">$${item.price.toFixed(2)} each</p>
+							</div>
+						</div>
+					`,
+						)
+						.join("")}
+				</div>
+			</div>
+			
+			<div style="background-color: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+				<h3 style="margin-top: 0; color: #333;">What's Next?</h3>
+				<p style="margin: 5px 0;">✅ Payment confirmed and processed</p>
+				<p style="margin: 5px 0;">📦 Your order is being prepared for shipment</p>
+				<p style="margin: 5px 0;">🚚 You'll receive a shipping confirmation email with tracking details</p>
+			</div>
+			
+			<div style="text-align: center; margin: 30px 0;">
+				<p>Thank you for your trust in Live Ecommerce. If you have any questions about your payment or order, please don't hesitate to contact our customer support.</p>
+			</div>
+			
+			<hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+			<p style="color: #666; font-size: 12px; text-align: center;">
+				© ${new Date().getFullYear()} Live Ecommerce. All rights reserved.<br>
+				This is an automated email. Please do not reply to this message.
+			</p>
+		</div>
+	`,
+	text: `
+Payment Confirmation for Order #${data.orderId}
+
+Hello ${data.paymentData.customerName},
+
+Great news! We've successfully received your payment for order #${data.orderId}. Your order is now being processed and will be shipped soon.
+
+Payment Details:
+- Order Number: #${data.orderId}
+- Transaction ID: ${data.paymentData.transactionId}
+- Payment Date: ${formatDisplayDate(data.paymentData.paymentDate)}
+- Amount Paid: ${data.paymentData.currency.toUpperCase()} $${data.paymentData.amount.toFixed(2)}
+- Payment Method: ${data.paymentData.paymentMethod.type}${data.paymentData.paymentMethod.last4 ? ` ending in ${data.paymentData.paymentMethod.last4}` : ""}
+
+Order Items:
+${data.paymentData.orderItems.map((item) => `- ${item.name} (Qty: ${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}`).join("\n")}
+
+What's Next?
+✅ Payment confirmed and processed
+📦 Your order is being prepared for shipment
+🚚 You'll receive a shipping confirmation email with tracking details
+
+Thank you for your trust in Live Ecommerce. If you have any questions about your payment or order, please don't hesitate to contact our customer support.
+
+© ${new Date().getFullYear()} Live Ecommerce. All rights reserved.
+This is an automated email. Please do not reply to this message.
+	`,
+});
+
+export const sendDeliveryConfirmationEmail = (
+	data: DeliveryConfirmationData,
+) => ({
+	to: data.deliveryData.customerEmail,
+	subject: `Order #${data.orderId} Delivered Successfully - Live Ecommerce`,
+	html: `
+		<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+			<h2 style="color: #4CAF50; text-align: center;">🎉 Order Delivered!</h2>
+			
+			<p>Hello ${data.deliveryData.customerName},</p>
+			
+			<p>Excellent news! Your order #${data.orderId} has been successfully delivered. We hope you're delighted with your purchase!</p>
+			
+			<div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+				<h3 style="margin-top: 0; color: #2e7d32;">Delivery Details</h3>
+				<p><strong>Order Number:</strong> #${data.orderId}</p>
+				<p><strong>Delivery Date:</strong> ${formatDisplayDate(data.deliveryData.deliveryDate)}</p>
+				${data.deliveryData.trackingNumber ? `<p><strong>Tracking Number:</strong> ${data.deliveryData.trackingNumber}</p>` : ""}
+				${data.deliveryData.carrier ? `<p><strong>Carrier:</strong> ${data.deliveryData.carrier}</p>` : ""}
+			</div>
+			
+			<div style="background-color: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+				<h3 style="margin-top: 0; color: #333;">Delivery Address</h3>
+				<p style="margin: 0;">
+					${data.deliveryData.deliveryAddress.street}<br>
+					${data.deliveryData.deliveryAddress.city}, ${data.deliveryData.deliveryAddress.state} ${data.deliveryData.deliveryAddress.zipCode}<br>
+					${data.deliveryData.deliveryAddress.country}
+				</p>
+				${data.deliveryData.deliveryNotes ? `<p style="margin: 10px 0 0 0; font-style: italic; color: #666;"><strong>Delivery Notes:</strong> ${data.deliveryData.deliveryNotes}</p>` : ""}
+			</div>
+			
+			<div style="background-color: #fff; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0;">
+				<h3 style="margin: 0; padding: 15px; background-color: #f8f9fa; border-bottom: 1px solid #ddd; border-radius: 8px 8px 0 0; color: #333;">Delivered Items</h3>
+				<div style="padding: 15px;">
+					${data.deliveryData.orderItems
+						.map(
+							(item) => `
+						<div style="border-bottom: 1px solid #eee; padding: 10px 0; display: flex; justify-content: space-between; align-items: center;">
+							<div>
+								<h4 style="margin: 0 0 5px 0; color: #333;">${item.name}</h4>
+								<p style="margin: 0; color: #666;">Quantity: ${item.quantity}</p>
+							</div>
+							<div style="text-align: right;">
+								<p style="margin: 0; font-weight: bold; color: #333;">$${(item.price * item.quantity).toFixed(2)}</p>
+							</div>
+						</div>
+					`,
+						)
+						.join("")}
+					<div style="border-top: 2px solid #4CAF50; padding: 15px 0 0 0; margin-top: 15px;">
+						<div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 18px;">
+							<span>Total Order Value:</span>
+							<span style="color: #4CAF50;">$${data.deliveryData.totalAmount.toFixed(2)}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div style="background-color: #fff8dc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+				<h3 style="margin-top: 0; color: #333;">We'd Love Your Feedback!</h3>
+				<p style="margin: 0;">Your experience matters to us. Please take a moment to rate your purchase and share your thoughts with other customers.</p>
+				<div style="text-align: center; margin: 15px 0;">
+					<a href="#" style="display: inline-block; padding: 12px 30px; background-color: #ff9800; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
+						Leave a Review
+					</a>
+				</div>
+			</div>
+			
+			<div style="text-align: center; margin: 30px 0;">
+				<p>Thank you for choosing Live Ecommerce! We appreciate your business and hope to serve you again soon.</p>
+				<p>If you have any questions or concerns about your delivery, please don't hesitate to contact our customer support.</p>
+			</div>
+			
+			<hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+			<p style="color: #666; font-size: 12px; text-align: center;">
+				© ${new Date().getFullYear()} Live Ecommerce. All rights reserved.<br>
+				This is an automated email. Please do not reply to this message.
+			</p>
+		</div>
+	`,
+	text: `
+Order #${data.orderId} Delivered Successfully!
+
+Hello ${data.deliveryData.customerName},
+
+Excellent news! Your order #${data.orderId} has been successfully delivered. We hope you're delighted with your purchase!
+
+Delivery Details:
+- Order Number: #${data.orderId}
+- Delivery Date: ${formatDisplayDate(data.deliveryData.deliveryDate)}
+${data.deliveryData.trackingNumber ? `- Tracking Number: ${data.deliveryData.trackingNumber}` : ""}
+${data.deliveryData.carrier ? `- Carrier: ${data.deliveryData.carrier}` : ""}
+
+Delivery Address:
+${data.deliveryData.deliveryAddress.street}
+${data.deliveryData.deliveryAddress.city}, ${data.deliveryData.deliveryAddress.state} ${data.deliveryData.deliveryAddress.zipCode}
+${data.deliveryData.deliveryAddress.country}
+${data.deliveryData.deliveryNotes ? `\nDelivery Notes: ${data.deliveryData.deliveryNotes}` : ""}
+
+Delivered Items:
+${data.deliveryData.orderItems.map((item) => `- ${item.name} (Qty: ${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}`).join("\n")}
+
+Total Order Value: $${data.deliveryData.totalAmount.toFixed(2)}
+
+We'd Love Your Feedback!
+Your experience matters to us. Please take a moment to rate your purchase and share your thoughts with other customers.
+
+Thank you for choosing Live Ecommerce! We appreciate your business and hope to serve you again soon.
+
+If you have any questions or concerns about your delivery, please don't hesitate to contact our customer support.
+
+© ${new Date().getFullYear()} Live Ecommerce. All rights reserved.
+This is an automated email. Please do not reply to this message.
 	`,
 });
