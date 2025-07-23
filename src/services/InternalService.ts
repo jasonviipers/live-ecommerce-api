@@ -873,6 +873,16 @@ export class InternalService extends EventEmitter {
 			for (const [serviceName, serviceData] of Object.entries(services)) {
 				try {
 					const serviceInfo = JSON.parse(serviceData);
+
+					// Validate serviceInfo structure
+					if (!this.isValidServiceInfo(serviceInfo)) {
+						logger.error("Invalid service registry data structure", {
+							serviceName,
+							serviceInfo,
+						});
+						continue; // Skip adding this entry
+					}
+
 					this.serviceRegistry.set(serviceName, serviceInfo);
 				} catch (error) {
 					logger.error("Failed to parse service registry data", {
@@ -910,6 +920,96 @@ export class InternalService extends EventEmitter {
 		this.eventHandlers.clear();
 
 		logger.info("Internal service destroyed");
+	}
+
+	// Validation helper method
+	private isValidServiceInfo(serviceInfo: any): boolean {
+		// Check if serviceInfo is an object
+		if (!serviceInfo || typeof serviceInfo !== "object") {
+			return false;
+		}
+
+		// Check required string properties
+		const requiredStringProps = ["name", "version", "endpoint"];
+		for (const prop of requiredStringProps) {
+			if (!serviceInfo[prop] || typeof serviceInfo[prop] !== "string") {
+				return false;
+			}
+		}
+
+		// Check lastHeartbeat is a valid date
+		if (!serviceInfo.lastHeartbeat) {
+			return false;
+		}
+
+		// Try to parse lastHeartbeat as Date
+		const heartbeatDate = new Date(serviceInfo.lastHeartbeat);
+		if (isNaN(heartbeatDate.getTime())) {
+			return false;
+		}
+
+		// Check health object structure
+		if (!serviceInfo.health || typeof serviceInfo.health !== "object") {
+			return false;
+		}
+
+		const health = serviceInfo.health;
+
+		// Check required health properties
+		if (!health.service || typeof health.service !== "string") {
+			return false;
+		}
+
+		if (
+			!health.status ||
+			!["healthy", "degraded", "unhealthy"].includes(health.status)
+		) {
+			return false;
+		}
+
+		if (!health.version || typeof health.version !== "string") {
+			return false;
+		}
+
+		if (typeof health.uptime !== "number") {
+			return false;
+		}
+
+		// Check lastCheck is a valid date
+		if (!health.lastCheck) {
+			return false;
+		}
+
+		const lastCheckDate = new Date(health.lastCheck);
+		if (isNaN(lastCheckDate.getTime())) {
+			return false;
+		}
+
+		// Check dependencies array
+		if (!Array.isArray(health.dependencies)) {
+			return false;
+		}
+
+		// Check metrics object
+		if (!health.metrics || typeof health.metrics !== "object") {
+			return false;
+		}
+
+		const metrics = health.metrics;
+		const requiredMetrics = [
+			"requestsPerSecond",
+			"averageResponseTime",
+			"errorRate",
+			"memoryUsage",
+			"cpuUsage",
+		];
+		for (const metric of requiredMetrics) {
+			if (typeof metrics[metric] !== "number") {
+				return false;
+			}
+		}
+
+		return true;
 	}
 }
 
