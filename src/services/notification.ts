@@ -2,6 +2,7 @@ import { query } from "@/database/connection";
 import { getSocketManager } from "@/config/socket";
 import { logger } from "@/config/logger";
 import type { CreateNotificationData, Notification } from "@/types";
+import { formatDisplayDate } from "@/utils/date";
 
 export class NotificationService {
 	static async create(data: CreateNotificationData): Promise<Notification> {
@@ -282,7 +283,7 @@ export class NotificationService {
 			userId,
 			type: "system",
 			title: "Scheduled Maintenance",
-			message: `System maintenance scheduled for ${maintenanceDate.toLocaleDateString()} (${duration})`,
+			message: `System maintenance scheduled for${formatDisplayDate(maintenanceDate)} (${duration})`,
 			data: { maintenanceDate, duration },
 		});
 	}

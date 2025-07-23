@@ -1,4 +1,5 @@
 import { OrderData, TrackingInfo } from "@/types";
+import { formatDisplayDate } from "@/utils/date";
 
 export const welcomeTemplate = (
 	user: { firstName: string; lastName: string; email: string },
@@ -63,8 +64,8 @@ export const sendShippingConfirmationEmail = (
 				<h3 style="margin-top: 0; color: #333;">Shipping Details</h3>
 				<p><strong>Tracking Number:</strong> ${trackingInfo.trackingNumber}</p>
 				<p><strong>Carrier:</strong> ${trackingInfo.carrier}</p>
-				<p><strong>Shipping Date:</strong> ${new Date(trackingInfo.shippingDate).toLocaleDateString()}</p>
-				${trackingInfo.estimatedDelivery ? `<p><strong>Estimated Delivery:</strong> ${new Date(trackingInfo.estimatedDelivery).toLocaleDateString()}</p>` : ""}
+				<p><strong>Shipping Date:</strong> ${formatDisplayDate(trackingInfo.shippingDate)}</p>
+				${trackingInfo.estimatedDelivery ? `<p><strong>Estimated Delivery:</strong> ${formatDisplayDate(trackingInfo.estimatedDelivery)}</p>` : ""}
 			</div>
 			
 			<div style="background-color: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -129,8 +130,8 @@ Great news! Your order #${orderId} has been shipped and is on its way to you.
 Shipping Details:
 - Tracking Number: ${trackingInfo.trackingNumber}
 - Carrier: ${trackingInfo.carrier}
-- Shipping Date: ${new Date(trackingInfo.shippingDate).toLocaleDateString()}
-${trackingInfo.estimatedDelivery ? `- Estimated Delivery: ${new Date(trackingInfo.estimatedDelivery).toLocaleDateString()}` : ""}
+- Shipping Date: ${formatDisplayDate(trackingInfo.shippingDate)}
+${trackingInfo.estimatedDelivery ? `- Estimated Delivery: ${formatDisplayDate(trackingInfo.estimatedDelivery)}` : ""}
 
 Shipping Address:
 ${trackingInfo.shippingAddress.street}
@@ -172,8 +173,8 @@ export const sendOrderConfirmationEmail = (
 			<div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
 				<h3 style="margin-top: 0; color: #333;">Order Details</h3>
 				<p><strong>Order Number:</strong> #${orderId}</p>
-				<p><strong>Order Date:</strong> ${new Date(orderData.orderDate).toLocaleDateString()}</p>
-				${orderData.estimatedDelivery ? `<p><strong>Estimated Delivery:</strong> ${new Date(orderData.estimatedDelivery).toLocaleDateString()}</p>` : ""}
+				<p><strong>Order Date:</strong> ${formatDisplayDate(orderData.orderDate)}</p>
+				${orderData.estimatedDelivery ? `<p><strong>Estimated Delivery:</strong> ${formatDisplayDate(orderData.estimatedDelivery)}</p>` : ""}
 			</div>
 			
 			<div style="background-color: #fff; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0;">
@@ -259,8 +260,8 @@ Thank you for your order! We're excited to confirm that we've received your orde
 
 Order Details:
 - Order Number: #${orderId}
-- Order Date: ${new Date(orderData.orderDate).toLocaleDateString()}
-${orderData.estimatedDelivery ? `- Estimated Delivery: ${new Date(orderData.estimatedDelivery).toLocaleDateString()}` : ""}
+- Order Date: ${formatDisplayDate(orderData.orderDate)}
+${orderData.estimatedDelivery ? `- Estimated Delivery: ${formatDisplayDate(orderData.estimatedDelivery)}` : ""}
 
 Order Items:
 ${orderData.items.map((item) => `- ${item.name} (Qty: ${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}`).join("\n")}
