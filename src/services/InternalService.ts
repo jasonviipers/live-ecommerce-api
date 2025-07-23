@@ -115,7 +115,6 @@ export class InternalService extends EventEmitter {
 		); // Percentage with 2 decimal places
 	}
 
-	// Get CPU usage using Node.js process.cpuUsage()
 	private getCpuUsage(): number {
 		try {
 			if (!this.lastCpuUsage) {
@@ -948,7 +947,6 @@ export class InternalService extends EventEmitter {
 
 	private async loadServiceRegistry(): Promise<void> {
 		try {
-			// Load from Redis
 			const redisClient = getRedisClient();
 			const services = await redisClient.hGetAll("service_registry");
 
@@ -982,12 +980,10 @@ export class InternalService extends EventEmitter {
 		}
 	}
 
-	// Get service registry
 	getServiceRegistry(): ServiceRegistry["services"] {
 		return this.serviceRegistry.services;
 	}
 
-	// Get service health
 	async getHealth(): Promise<ServiceHealth> {
 		return await this.getServiceHealth();
 	}
@@ -1116,7 +1112,6 @@ export class InternalService extends EventEmitter {
 	}
 }
 
-// Create singleton instance
 let internalService: InternalService | null = null;
 
 export const getInternalService = async (): Promise<InternalService> => {
