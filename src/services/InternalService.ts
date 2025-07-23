@@ -117,7 +117,7 @@ export class InternalService extends EventEmitter {
 
 	// Get CPU usage using Node.js process.cpuUsage()
 	private getCpuUsage(): number {
-		try {
+			try {
 			if (!this.lastCpuUsage) {
 				this.lastCpuUsage = process.cpuUsage();
 				this.lastCpuTime = process.hrtime.bigint();
@@ -139,6 +139,7 @@ export class InternalService extends EventEmitter {
 			logger.warn("Failed to calculate CPU usage", error as Error);
 			return 0;
 		}
+	}
 	}
 
 	private async registerService(): Promise<void> {
