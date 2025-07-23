@@ -859,7 +859,6 @@ export class InternalService extends EventEmitter {
 
 	private async notifyVendorOfPaidOrder(orderId: string): Promise<void> {
 		//TODO: Implementation would notify vendor
-		logger.info("Vendor notified of paid order", { orderId });
 	}
 
 	private async notifyFollowersOfStream(
@@ -867,7 +866,6 @@ export class InternalService extends EventEmitter {
 		streamKey: string,
 	): Promise<void> {
 		//TODO: Implementation would notify followers
-		logger.info("Followers notified of stream", { streamerId, streamKey });
 	}
 
 	private async trackStreamStarted(
@@ -875,7 +873,6 @@ export class InternalService extends EventEmitter {
 		streamerId: string,
 	): Promise<void> {
 		//TODO: Implementation would track analytics
-		logger.info("Stream started tracked", { streamKey, streamerId });
 	}
 
 	private async processStreamAnalytics(
@@ -885,12 +882,7 @@ export class InternalService extends EventEmitter {
 		viewerCount: number,
 	): Promise<void> {
 		//TODO: Implementation would process stream analytics
-		logger.info("Stream analytics processed", {
-			streamKey,
-			streamerId,
-			duration,
-			viewerCount,
-		});
+		
 	}
 
 	private async notifyVendorOfLowStock(
@@ -899,11 +891,6 @@ export class InternalService extends EventEmitter {
 		threshold: number,
 	): Promise<void> {
 		//TODO: Implementation would notify vendor
-		logger.info("Vendor notified of low stock", {
-			productId,
-			currentStock,
-			threshold,
-		});
 	}
 
 	private async trackLowStockEvent(
@@ -911,7 +898,6 @@ export class InternalService extends EventEmitter {
 		currentStock: number,
 	): Promise<void> {
 		//TODO: Implementation would track analytics
-		logger.info("Low stock event tracked", { productId, currentStock });
 	}
 
 	// Database operations
