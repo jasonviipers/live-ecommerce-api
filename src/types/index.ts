@@ -669,3 +669,36 @@ export interface OrderData {
 	};
 	estimatedDelivery?: string;
 }
+
+export interface ServiceHealth {
+	service: string;
+	status: "healthy" | "degraded" | "unhealthy";
+	version: string;
+	uptime: number;
+	lastCheck: Date;
+	dependencies: Array<{
+		name: string;
+		status: "healthy" | "unhealthy";
+		responseTime?: number;
+	}>;
+	metrics: {
+		requestsPerSecond: number;
+		averageResponseTime: number;
+		errorRate: number;
+		memoryUsage: number;
+		cpuUsage: number;
+	};
+}
+
+export interface ServiceRegistry {
+	services: Map<
+		string,
+		{
+			name: string;
+			version: string;
+			endpoint: string;
+			health: ServiceHealth;
+			lastHeartbeat: Date;
+		}
+	>;
+}

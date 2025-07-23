@@ -11,6 +11,7 @@ import { logger } from "./config/logger";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { errorHandler } from "./middleware/errorHandler";
 import MediaService from "./services/mediaService";
+import InternalService from "./services/InternalService";
 
 // Database connections
 import {
@@ -38,7 +39,6 @@ import paymentRoutes from "./routes/payments";
 import uploadRoutes from "./routes/uploads";
 import notificationRoutes from "./routes/notifications";
 import { getMediaServerService } from "./services/mediaServerService";
-import { getInternalService } from "./services/InternalService";
 
 const app = new Hono();
 
@@ -130,7 +130,7 @@ const startServer = async () => {
 
 		// Initialize Internal Service
 		logger.info("🔧 Initializing Internal Service...");
-		await getInternalService();
+		await InternalService.create();
 
 		fire(app);
 	} catch (error) {

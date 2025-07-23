@@ -5,6 +5,7 @@ import { config } from "../config";
 import { getRedisClient } from "@/database/redis";
 import { getWebhookService } from "./webhookService";
 import EmailService from "./emailService";
+import { ServiceHealth, ServiceRegistry } from "@/types";
 
 export interface ServiceEvent {
 	id: string;
@@ -17,38 +18,6 @@ export interface ServiceEvent {
 	metadata?: Record<string, any>;
 }
 
-export interface ServiceHealth {
-	service: string;
-	status: "healthy" | "degraded" | "unhealthy";
-	version: string;
-	uptime: number;
-	lastCheck: Date;
-	dependencies: Array<{
-		name: string;
-		status: "healthy" | "unhealthy";
-		responseTime?: number;
-	}>;
-	metrics: {
-		requestsPerSecond: number;
-		averageResponseTime: number;
-		errorRate: number;
-		memoryUsage: number;
-		cpuUsage: number;
-	};
-}
-
-export interface ServiceRegistry {
-	services: Map<
-		string,
-		{
-			name: string;
-			version: string;
-			endpoint: string;
-			health: ServiceHealth;
-			lastHeartbeat: Date;
-		}
-	>;
-}
 export type EventHandler = (event: ServiceEvent) => void | Promise<void>;
 
 export class InternalService extends EventEmitter {
@@ -58,9 +27,14 @@ export class InternalService extends EventEmitter {
 	private readonly SERVICE_VERSION = "1.0.0";
 	private heartbeatInterval?: NodeJS.Timeout;
 
-	constructor() {
+	private constructor() {
 		super();
-		this.initializeService();
+	}
+
+	static async create(): Promise<InternalService> {
+		const service = new InternalService();
+		await service.initializeService();
+		return service;
 	}
 
 	// Initialize internal service
@@ -1016,11 +990,10 @@ export class InternalService extends EventEmitter {
 // Create singleton instance
 let internalService: InternalService | null = null;
 
-export const getInternalService = (): InternalService => {
+export const getInternalService = async (): Promise<InternalService> => {
 	if (!internalService) {
-		internalService = new InternalService();
+		internalService = await InternalService.create();
 	}
-
 	return internalService;
 };
 
