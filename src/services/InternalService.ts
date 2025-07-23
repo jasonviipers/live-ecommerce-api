@@ -7,6 +7,7 @@ import { getWebhookService } from "./webhookService";
 import EmailService from "./emailService";
 import { ServiceHealth, ServiceRegistry } from "@/types";
 import { createId } from "@paralleldrive/cuid2";
+import AnalyticsService from "./analyticsService";
 
 export interface ServiceEvent {
 	id: string;
@@ -728,8 +729,35 @@ export class InternalService extends EventEmitter {
 		orderId: string,
 		trackingInfo: any,
 	): Promise<void> {
-		//TODO: Implementation would track order shipped in analytics
-		logger.info("Order shipped tracked", { orderId });
+		try {
+			await AnalyticsService.trackEvent({
+				eventType: "ecommerce",
+				eventCategory: "order",
+				eventAction: "shipped",
+				eventLabel: orderId,
+				properties: {
+					orderId,
+					trackingNumber: trackingInfo?.trackingNumber,
+					carrier: trackingInfo?.carrier,
+					estimatedDelivery: trackingInfo?.estimatedDelivery,
+					shippingDate: trackingInfo?.shippingDate || new Date().toISOString(),
+					recipientName: trackingInfo?.recipientName,
+					recipientEmail: trackingInfo?.recipientEmail,
+					shippingAddress: trackingInfo?.shippingAddress,
+					orderItems: trackingInfo?.orderItems,
+				},
+			});
+			logger.info("Order shipped tracked in analytics", {
+				orderId,
+				trackingNumber: trackingInfo?.trackingNumber,
+			});
+		} catch (error) {
+			logger.error("Failed to track order shipped in analytics", {
+				orderId,
+				trackingNumber: trackingInfo?.trackingNumber,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
 	}
 
 	private async trackOrderDelivered(orderId: string): Promise<void> {
@@ -882,7 +910,6 @@ export class InternalService extends EventEmitter {
 		viewerCount: number,
 	): Promise<void> {
 		//TODO: Implementation would process stream analytics
-		
 	}
 
 	private async notifyVendorOfLowStock(
