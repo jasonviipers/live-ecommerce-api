@@ -748,3 +748,8 @@ export type DeliveryConfirmationData = {
 		deliveryNotes?: string;
 	};
 };
+
+export interface OrderShippedEvent {
+	orderId: string;
+	trackingInfo: TrackingInfo;
+}

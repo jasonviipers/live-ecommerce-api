@@ -5,7 +5,7 @@ import { config } from "../config";
 import { getRedisClient } from "@/database/redis";
 import { getWebhookService } from "./webhookService";
 import EmailService from "./emailService";
-import { ServiceHealth, ServiceRegistry } from "@/types";
+import { OrderShippedEvent, ServiceHealth, ServiceRegistry } from "@/types";
 import { createId } from "@paralleldrive/cuid2";
 import AnalyticsService from "./analyticsService";
 
@@ -456,7 +456,7 @@ export class InternalService extends EventEmitter {
 			await EmailService.sendShippingConfirmationEmail(orderId, trackingInfo);
 
 			// Update order status in analytics
-			await this.trackOrderShipped(orderId, trackingInfo);
+			await this.trackOrderShipped({ orderId, trackingInfo });
 
 			logger.info("Order shipped event handled", { orderId });
 		} catch (error) {
@@ -725,36 +725,34 @@ export class InternalService extends EventEmitter {
 	}
 
 	// Helper methods (simplified implementations)
-	private async trackOrderShipped(
-		orderId: string,
-		trackingInfo: any,
-	): Promise<void> {
+	private async trackOrderShipped(data: OrderShippedEvent): Promise<void> {
 		try {
 			await AnalyticsService.trackEvent({
 				eventType: "ecommerce",
 				eventCategory: "order",
 				eventAction: "shipped",
-				eventLabel: orderId,
+				eventLabel: data.orderId,
 				properties: {
-					orderId,
-					trackingNumber: trackingInfo?.trackingNumber,
-					carrier: trackingInfo?.carrier,
-					estimatedDelivery: trackingInfo?.estimatedDelivery,
-					shippingDate: trackingInfo?.shippingDate || new Date().toISOString(),
-					recipientName: trackingInfo?.recipientName,
-					recipientEmail: trackingInfo?.recipientEmail,
-					shippingAddress: trackingInfo?.shippingAddress,
-					orderItems: trackingInfo?.orderItems,
+					orderId: data.orderId,
+					trackingNumber: data.trackingInfo?.trackingNumber,
+					carrier: data.trackingInfo?.carrier,
+					estimatedDelivery: data.trackingInfo?.estimatedDelivery,
+					shippingDate:
+						data.trackingInfo?.shippingDate || new Date().toISOString(),
+					recipientName: data.trackingInfo?.recipientName,
+					recipientEmail: data.trackingInfo?.recipientEmail,
+					shippingAddress: data.trackingInfo?.shippingAddress,
+					orderItems: data.trackingInfo?.orderItems,
 				},
 			});
 			logger.info("Order shipped tracked in analytics", {
-				orderId,
-				trackingNumber: trackingInfo?.trackingNumber,
+				orderId: data.orderId,
+				trackingNumber: data.trackingInfo?.trackingNumber,
 			});
 		} catch (error) {
 			logger.error("Failed to track order shipped in analytics", {
-				orderId,
-				trackingNumber: trackingInfo?.trackingNumber,
+				orderId: data.orderId,
+				trackingNumber: data.trackingInfo?.trackingNumber,
 				error: error instanceof Error ? error.message : String(error),
 			});
 		}
