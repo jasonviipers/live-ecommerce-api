@@ -4,6 +4,7 @@ import logger from "@/config/logger";
 import PaymentService from "./payment";
 import { createId } from "@paralleldrive/cuid2";
 import { config } from "@/config";
+import { QueryResult } from "pg";
 
 export interface Donation {
 	id: string;
@@ -25,7 +26,12 @@ export interface Donation {
 	createdAt: Date;
 	updatedAt: Date;
 }
-
+export interface TopDonorRow {
+	donor_id: string;
+	donor_name: string;
+	total_amount: string;
+	donation_count: string;
+}
 export interface DonationGoal {
 	id: string;
 	streamKey: string;
@@ -523,7 +529,10 @@ export class DonationService extends EventEmitter {
         ORDER BY total_amount DESC
         LIMIT 10
       `;
-			const topDonorsResult = await query(topDonorsSql, values);
+			const topDonorsResult: QueryResult<TopDonorRow> = await query(
+				topDonorsSql,
+				values,
+			);
 			const topDonors = topDonorsResult.rows.map((row) => ({
 				donorId: row.donor_id,
 				donorName: row.donor_name,
