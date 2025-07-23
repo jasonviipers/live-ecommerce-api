@@ -8,6 +8,7 @@ const envSchema = z.object({
 		.default("development"),
 	PORT: z.string().default("3000").transform(Number),
 	HOST: z.string().default("0.0.0.0"),
+	PUBLIC_URL: z.string().url().optional(),
 
 	// Database Configuration
 	DATABASE_URL: z.string(),
@@ -111,6 +112,7 @@ export const config = {
 		nodeEnv: env.NODE_ENV,
 		port: env.PORT,
 		host: env.HOST,
+		publicUrl: env.PUBLIC_URL,
 		isDevelopment: env.NODE_ENV === "development",
 		isProduction: env.NODE_ENV === "production",
 		isTest: env.NODE_ENV === "test",

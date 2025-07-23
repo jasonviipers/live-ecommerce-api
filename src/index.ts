@@ -11,6 +11,7 @@ import { logger } from "./config/logger";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { errorHandler } from "./middleware/errorHandler";
 import MediaService from "./services/mediaService";
+import InternalService from "./services/InternalService";
 
 // Database connections
 import {
@@ -34,6 +35,10 @@ import orderRoutes from "./routes/orders";
 import cartRoutes from "./routes/cart";
 import streamRoutes from "./routes/streams";
 import videoRoutes from "./routes/videos";
+import paymentRoutes from "./routes/payments";
+import uploadRoutes from "./routes/uploads";
+import notificationRoutes from "./routes/notifications";
+import { getMediaServerService } from "./services/mediaServerService";
 
 const app = new Hono();
 
@@ -86,10 +91,10 @@ app.route("/api/orders", orderRoutes);
 app.route("/api/cart", cartRoutes);
 app.route("/api/streams", streamRoutes);
 app.route("/api/videos", videoRoutes);
-// app.route('/api/payments', paymentRoutes);
+app.route("/api/payments", paymentRoutes);
 app.route("/api/analytics", analyticsRoutes);
-// app.route('/api/uploads', uploadRoutes);
-// app.route('/api/notifications', notificationRoutes);
+app.route("/api/uploads", uploadRoutes);
+app.route("/api/notifications", notificationRoutes);
 
 // 404 handler
 app.notFound((c) => {
@@ -120,6 +125,13 @@ const startServer = async () => {
 
 		// Initialize and start Media Server
 		logger.info("📺 Initializing Media Server...");
+		const mediaServer = getMediaServerService();
+		await mediaServer.start();
+
+		// Initialize Internal Service
+		logger.info("🔧 Initializing Internal Service...");
+		await InternalService.create();
+
 		fire(app);
 	} catch (error) {
 		logger.error("Failed to start server", error as Error);

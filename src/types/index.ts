@@ -609,3 +609,142 @@ export interface WebhookDelivery {
 	nextRetryAt?: Date;
 	createdAt: Date;
 }
+
+export interface TrackingInfo {
+	trackingNumber: string;
+	carrier: string;
+	estimatedDelivery?: string;
+	shippingDate: string;
+	recipientName: string;
+	recipientEmail: string;
+	shippingAddress: {
+		street: string;
+		city: string;
+		state: string;
+		zipCode: string;
+		country: string;
+	};
+	trackingUrl?: string;
+	orderItems?: Array<{
+		name: string;
+		quantity: number;
+		price: number;
+	}>;
+}
+
+export interface OrderData {
+	orderId: string;
+	customerName: string;
+	customerEmail: string;
+	orderDate: string;
+	items: Array<{
+		id: string;
+		name: string;
+		description?: string;
+		quantity: number;
+		price: number;
+		imageUrl?: string;
+	}>;
+	subtotal: number;
+	tax: number;
+	shipping: number;
+	total: number;
+	billingAddress: {
+		street: string;
+		city: string;
+		state: string;
+		zipCode: string;
+		country: string;
+	};
+	shippingAddress: {
+		street: string;
+		city: string;
+		state: string;
+		zipCode: string;
+		country: string;
+	};
+	paymentMethod: {
+		type: string;
+		last4?: string;
+	};
+	estimatedDelivery?: string;
+}
+
+export interface ServiceHealth {
+	service: string;
+	status: "healthy" | "degraded" | "unhealthy";
+	version: string;
+	uptime: number;
+	lastCheck: Date;
+	dependencies: Array<{
+		name: string;
+		status: "healthy" | "unhealthy";
+		responseTime?: number;
+	}>;
+	metrics: {
+		requestsPerSecond: number;
+		averageResponseTime: number;
+		errorRate: number;
+		memoryUsage: number;
+		cpuUsage: number;
+	};
+}
+
+export interface ServiceRegistry {
+	services: Map<
+		string,
+		{
+			name: string;
+			version: string;
+			endpoint: string;
+			health: ServiceHealth;
+			lastHeartbeat: Date;
+		}
+	>;
+}
+
+export type PaymentConfirmationData = {
+	orderId: string;
+	paymentData: {
+		customerName: string;
+		customerEmail: string;
+		amount: number;
+		currency: string;
+		paymentMethod: {
+			type: string;
+			last4?: string;
+		};
+		transactionId: string;
+		paymentDate: Date;
+		orderItems: Array<{
+			name: string;
+			quantity: number;
+			price: number;
+		}>;
+	};
+};
+
+export type DeliveryConfirmationData = {
+	orderId: string;
+	deliveryData: {
+		customerName: string;
+		customerEmail: string;
+		deliveryDate: Date;
+		deliveryAddress: {
+			street: string;
+			city: string;
+			state: string;
+			zipCode: string;
+			country: string;
+		};
+		orderItems: Array<{
+			name: string;
+			quantity: number;
+			price: number;
+		}>;
+		totalAmount: number;
+		trackingNumber?: string;
+		carrier?: string;
+		deliveryNotes?: string;
+	};
+};
