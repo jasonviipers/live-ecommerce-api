@@ -22,11 +22,19 @@ export interface ServiceEvent {
 export type EventHandler = (event: ServiceEvent) => void | Promise<void>;
 
 export class InternalService extends EventEmitter {
-	private serviceRegistry: ServiceRegistry["services"] = new Map();
-	private eventHandlers: Map<string, EventHandler[]> = new Map();
-	private readonly SERVICE_NAME = "live-streaming-api";
+	private static instance: InternalService;
+	private readonly SERVICE_NAME = "internal-service";
 	private readonly SERVICE_VERSION = "1.0.0";
-	private heartbeatInterval?: NodeJS.Timeout;
+	private eventHandlers: Map<string, EventHandler[]> = new Map();
+	private serviceRegistry: ServiceRegistry = { services: new Map() };
+	private heartbeatInterval?: NodeJS.Timeout; // Add this property
+
+	// Metrics tracking properties
+	private requestCount = 0;
+	private errorCount = 0;
+	private requestTimestamps: number[] = [];
+	private errorTimestamps: number[] = [];
+	private readonly METRICS_WINDOW_MS = 60000; // 1 minute window for RPS calculation
 
 	private constructor() {
 		super();
@@ -52,6 +60,84 @@ export class InternalService extends EventEmitter {
 		}
 	}
 
+	// Track incoming requests
+	public trackRequest(): void {
+		this.requestCount++;
+		const now = Date.now();
+		this.requestTimestamps.push(now);
+
+		// Clean old timestamps (older than 1 minute)
+		this.requestTimestamps = this.requestTimestamps.filter(
+			(timestamp) => now - timestamp <= this.METRICS_WINDOW_MS,
+		);
+	}
+
+	// Track errors
+	public trackError(): void {
+		this.errorCount++;
+		const now = Date.now();
+		this.errorTimestamps.push(now);
+
+		// Clean old timestamps (older than 1 minute)
+		this.errorTimestamps = this.errorTimestamps.filter(
+			(timestamp) => now - timestamp <= this.METRICS_WINDOW_MS,
+		);
+	}
+
+	// Calculate requests per second
+	private getRequestsPerSecond(): number {
+		const now = Date.now();
+		const recentRequests = this.requestTimestamps.filter(
+			(timestamp) => now - timestamp <= this.METRICS_WINDOW_MS,
+		);
+		return (
+			Math.round(
+				(recentRequests.length / (this.METRICS_WINDOW_MS / 1000)) * 100,
+			) / 100
+		);
+	}
+
+	// Calculate error rate
+	private getErrorRate(): number {
+		const now = Date.now();
+		const recentRequests = this.requestTimestamps.filter(
+			(timestamp) => now - timestamp <= this.METRICS_WINDOW_MS,
+		);
+		const recentErrors = this.errorTimestamps.filter(
+			(timestamp) => now - timestamp <= this.METRICS_WINDOW_MS,
+		);
+
+		if (recentRequests.length === 0) return 0;
+		return (
+			Math.round((recentErrors.length / recentRequests.length) * 10000) / 100
+		); // Percentage with 2 decimal places
+	}
+
+	// Get CPU usage using Node.js process.cpuUsage()
+	private getCpuUsage(): number {
+		try {
+			const startUsage = process.cpuUsage();
+			// Use a small delay to measure CPU usage
+			const startTime = process.hrtime.bigint();
+
+			// Perform a small computation to get a reading
+			setTimeout(() => {}, 0);
+
+			const endTime = process.hrtime.bigint();
+			const endUsage = process.cpuUsage(startUsage);
+
+			// Calculate CPU usage percentage
+			const totalTime = Number(endTime - startTime) / 1000000; // Convert to milliseconds
+			const cpuTime = (endUsage.user + endUsage.system) / 1000; // Convert to milliseconds
+
+			const cpuPercent = totalTime > 0 ? (cpuTime / totalTime) * 100 : 0;
+			return Math.round(Math.min(cpuPercent, 100) * 100) / 100; // Cap at 100% and round to 2 decimal places
+		} catch (error) {
+			logger.warn("Failed to calculate CPU usage", error as Error);
+			return 0;
+		}
+	}
+
 	private async registerService(): Promise<void> {
 		try {
 			const health = await this.getServiceHealth();
@@ -74,7 +160,7 @@ export class InternalService extends EventEmitter {
 			);
 
 			// Store in local registry
-			this.serviceRegistry.set(this.SERVICE_NAME, serviceInfo);
+			this.serviceRegistry.services.set(this.SERVICE_NAME, serviceInfo);
 
 			logger.info("Service registered", {
 				service: this.SERVICE_NAME,
@@ -119,6 +205,7 @@ export class InternalService extends EventEmitter {
 			const serviceInfo = {
 				name: this.SERVICE_NAME,
 				version: this.SERVICE_VERSION,
+
 				endpoint: this.determineServiceEndpoint(),
 				health,
 				lastHeartbeat: new Date(),
@@ -163,15 +250,14 @@ export class InternalService extends EventEmitter {
 
 			return {
 				service: this.SERVICE_NAME,
-				status: dbHealth && redisHealth ? "healthy" : "degraded",
+				status: dbHealth && redisHealth ? "healthy" : "unhealthy",
 				version: this.SERVICE_VERSION,
 				uptime,
 				lastCheck: new Date(),
 				dependencies: [
 					{
-						name: "postgresql",
+						name: "database",
 						status: dbHealth ? "healthy" : "unhealthy",
-						responseTime: responseTime,
 					},
 					{
 						name: "redis",
@@ -179,11 +265,11 @@ export class InternalService extends EventEmitter {
 					},
 				],
 				metrics: {
-					requestsPerSecond: 0, // Would need to implement request tracking
+					requestsPerSecond: this.getRequestsPerSecond(),
 					averageResponseTime: responseTime,
-					errorRate: 0, // Would need to implement error tracking
+					errorRate: this.getErrorRate(),
 					memoryUsage: memoryUsage.heapUsed / 1024 / 1024, // MB
-					cpuUsage: 0, // Would need to implement CPU tracking
+					cpuUsage: this.getCpuUsage(),
 				},
 			};
 		} catch (error) {
@@ -238,6 +324,9 @@ export class InternalService extends EventEmitter {
 			metadata?: Record<string, any>;
 		} = {},
 	): Promise<ServiceEvent> {
+		// Track this as a request
+		this.trackRequest();
+
 		try {
 			const event: ServiceEvent = {
 				id: `evt_${createId()}`,
@@ -272,6 +361,8 @@ export class InternalService extends EventEmitter {
 
 			return event;
 		} catch (error) {
+			// Track this as an error
+			this.trackError();
 			logger.error("Failed to emit internal event", { type, error });
 			throw error;
 		}
@@ -866,7 +957,7 @@ export class InternalService extends EventEmitter {
 						continue; // Skip adding this entry
 					}
 
-					this.serviceRegistry.set(serviceName, serviceInfo);
+					this.serviceRegistry.services.set(serviceName, serviceInfo);
 				} catch (error) {
 					logger.error("Failed to parse service registry data", {
 						serviceName,
@@ -876,7 +967,7 @@ export class InternalService extends EventEmitter {
 			}
 
 			logger.info("Service registry loaded", {
-				count: this.serviceRegistry.size,
+				count: this.serviceRegistry.services.size,
 			});
 		} catch (error) {
 			logger.error("Failed to load service registry", error as Error);
@@ -885,7 +976,7 @@ export class InternalService extends EventEmitter {
 
 	// Get service registry
 	getServiceRegistry(): ServiceRegistry["services"] {
-		return this.serviceRegistry;
+		return this.serviceRegistry.services;
 	}
 
 	// Get service health
@@ -903,6 +994,27 @@ export class InternalService extends EventEmitter {
 		this.eventHandlers.clear();
 
 		logger.info("Internal service destroyed");
+	}
+
+	static getInstance(): InternalService {
+		if (!InternalService.instance) {
+			InternalService.instance = new InternalService();
+		}
+		return InternalService.instance;
+	}
+
+	// Public methods for external request/error tracking
+	public static trackRequest(): void {
+		InternalService.getInstance().trackRequest();
+	}
+
+	public static trackError(): void {
+		InternalService.getInstance().trackError();
+	}
+
+	// Public method to get current metrics
+	public static async getMetrics(): Promise<ServiceHealth> {
+		return InternalService.getInstance().getServiceHealth();
 	}
 
 	// Validation helper method
