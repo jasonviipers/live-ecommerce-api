@@ -6,6 +6,7 @@ import { getRedisClient } from "@/database/redis";
 import { getWebhookService } from "./webhookService";
 import EmailService from "./emailService";
 import { ServiceHealth, ServiceRegistry } from "@/types";
+import { createId } from "@paralleldrive/cuid2";
 
 export interface ServiceEvent {
 	id: string;
@@ -239,7 +240,7 @@ export class InternalService extends EventEmitter {
 	): Promise<ServiceEvent> {
 		try {
 			const event: ServiceEvent = {
-				id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+				id: `evt_${createId()}`,
 				service: this.SERVICE_NAME,
 				type,
 				data,
