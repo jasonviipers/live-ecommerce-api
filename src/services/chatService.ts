@@ -95,7 +95,6 @@ export class ChatService extends EventEmitter {
 		}
 	}
 
-	// Send message to chat
 	async sendMessage(
 		streamKey: string,
 		userId: string,
@@ -111,7 +110,8 @@ export class ChatService extends EventEmitter {
 		}
 
 		// Check if user is banned
-		if (chatRoom.bannedUsers.includes(userId)) {
+		const isBanned = await this.checkUserBanStatus(streamKey, userId);
+		if (isBanned) {
 			logger.error("User is banned from chat", { streamKey, userId });
 			throw new UserBannedError(userId, streamKey);
 		}
@@ -134,14 +134,11 @@ export class ChatService extends EventEmitter {
 			}
 		}
 
-		// Validate message
 		const validatedMessage = await this.validateMessage(messageText, chatRoom);
 
-		// Get user info
 		const userInfo = await this.getUserInfo(userId);
 
 		try {
-			// Create message
 			const message: ChatMessage = {
 				id: `msg_${createId()}`,
 				streamKey,
@@ -156,13 +153,11 @@ export class ChatService extends EventEmitter {
 				isDeleted: false,
 			};
 
-			// Store message
 			await this.storeMessage(message);
 
 			// Update user last message time
 			this.userLastMessage.set(`${streamKey}:${userId}`, new Date());
 
-			// Update chat room stats
 			chatRoom.messageCount++;
 			chatRoom.updatedAt = new Date();
 			await this.updateChatRoom(chatRoom);
@@ -243,7 +238,7 @@ export class ChatService extends EventEmitter {
 		streamKey: string,
 		userId: string,
 		bannedBy: string,
-		duration?: number, // minutes, undefined for permanent
+		duration?: number,
 	): Promise<void> {
 		const chatRoom = this.chatRooms.get(streamKey);
 
@@ -252,7 +247,6 @@ export class ChatService extends EventEmitter {
 			throw new ChatRoomNotFoundError(streamKey);
 		}
 
-		// Check if user has permission to ban
 		if (!this.canBanUser(bannedBy, chatRoom)) {
 			logger.error("Insufficient permissions to ban user", {
 				bannedBy,
@@ -262,30 +256,17 @@ export class ChatService extends EventEmitter {
 		}
 
 		try {
-			// Add to banned users
 			if (!chatRoom.bannedUsers.includes(userId)) {
 				chatRoom.bannedUsers.push(userId);
 			}
 
-			// Update chat room
 			await this.updateChatRoom(chatRoom);
 
-			// Store ban in database
 			const sql = `
         INSERT INTO chat_bans (stream_key, user_id, banned_by, duration, created_at)
         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
       `;
 			await query(sql, [streamKey, userId, bannedBy, duration || null]);
-
-			// Schedule unban if duration is specified
-			if (duration) {
-				setTimeout(
-					() => {
-						this.unbanUser(streamKey, userId);
-					},
-					duration * 60 * 1000,
-				);
-			}
 
 			logger.info("User banned from chat", {
 				streamKey,
@@ -333,6 +314,61 @@ export class ChatService extends EventEmitter {
 		} catch (error) {
 			logger.error("Failed to unban user", { streamKey, userId, error });
 			throw new DatabaseOperationError("unban user", error);
+		}
+	}
+
+	private async checkUserBanStatus(
+		streamKey: string,
+		userId: string,
+	): Promise<boolean> {
+		try {
+			const sql = `
+        SELECT duration, created_at 
+        FROM chat_bans 
+        WHERE stream_key = $1 AND user_id = $2 AND unbanned_at IS NULL
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `;
+			const result = await query(sql, [streamKey, userId]);
+
+			if (result.rows.length === 0) {
+				return false; // No active ban
+			}
+
+			const ban = result.rows[0];
+
+			// If it's a permanent ban (duration is null), user is banned
+			if (ban.duration === null) {
+				return true;
+			}
+
+			// Check if temporary ban has expired
+			const banCreatedAt = new Date(ban.created_at);
+			const banExpiresAt = new Date(
+				banCreatedAt.getTime() + ban.duration * 60 * 1000,
+			);
+			const now = new Date();
+
+			if (now >= banExpiresAt) {
+				// Ban has expired, automatically unban the user
+				await this.unbanUser(streamKey, userId);
+				logger.info("Temporary ban expired and user unbanned", {
+					streamKey,
+					userId,
+					banDuration: ban.duration,
+				});
+				return false;
+			}
+
+			return true; // Ban is still active
+		} catch (error) {
+			logger.error("Failed to check user ban status", {
+				streamKey,
+				userId,
+				error,
+			});
+			// In case of error, default to not banned to avoid blocking legitimate users
+			return false;
 		}
 	}
 
