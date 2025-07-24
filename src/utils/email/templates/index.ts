@@ -56,21 +56,23 @@ If you did not register with Live Ecommerce, please ignore this email.
 `,
 });
 
-export const sendPasswordResetEmail = (
-	user: { firstName: string; lastName: string; email: string },
-	resetOTP: string,
-) => ({
+export const sendPasswordResetTemplate = (user: {
+	firstName: string;
+	lastName: string;
+	email: string;
+	optCode: string;
+}) => ({
 	to: user.email,
 	subject: "Password Reset Request",
 	html: `
     <p>Hello ${user.firstName} ${user.lastName},</p>
     <p>We received a request to reset your password. Please use the following OTP to reset your password:</p>
-    <p><strong>${resetOTP}</strong></p>
+    <p><strong>${user.optCode}</strong></p>
     <p>If you did not request a password reset, please ignore this email.</p>
   `,
 	text: `Hello ${user.firstName} ${user.lastName},
 We received a request to reset your password. Please use the following OTP to reset your password:
-${resetOTP}
+${user.optCode}
 If you did not request a password reset, please ignore this email.
 
 `,

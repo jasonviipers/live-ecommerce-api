@@ -309,7 +309,7 @@ auth.get("/me", authMiddleware, async (c) => {
 							rating: vendor.rating,
 							reviewCount: vendor.reviewCount,
 						}
-					: null,
+					: undefined,
 			},
 		});
 	} catch (error) {
@@ -328,9 +328,21 @@ auth.post(
 
 			const user = await UserRepository.findByEmail(email);
 			if (user) {
-				// TODO: Generate reset token and send email
-				// const resetToken = await tokenService.generatePasswordResetToken(user.id);
-				// await emailService.sendPasswordResetEmail(user.email, resetToken);
+				const optCode = generateOtp(6);
+				const optCodeExpiresAt = new Date();
+				optCodeExpiresAt.setMinutes(optCodeExpiresAt.getMinutes() + 15); // Expires in 15 minutes
+
+				await UserRepository.update(user.id, {
+					optCode,
+					optCodeExpiresAt,
+				});
+
+				await EmailService.sendPasswordResetEmail({
+					firstName: user.firstName,
+					lastName: user.lastName,
+					email: user.email,
+					optCode,
+				});
 			}
 
 			logger.info("Password reset requested", { email });
@@ -353,12 +365,19 @@ auth.post(
 	zValidator("json", resetPasswordSchema),
 	async (c) => {
 		try {
-			const { token, password } = c.req.valid("json");
+			const { optCode, password } = c.req.valid("json");
+			const user = await UserRepository.findByOptCode(optCode);
+			if (!user) {
+				throw createError.badRequest("Invalid or expired optCode");
+			}
 
-			// TODO: Verify reset token and update password
-			// const userId = await tokenService.verifyPasswordResetToken(token);
-			// await UserRepository.updatePassword(userId, password);
-			// await tokenService.revokePasswordResetToken(token);
+			const hashPassword = await Bun.password.hash(password);
+
+			await UserRepository.update(user.id, {
+				passwordHash: hashPassword,
+				optCode: undefined,
+				optCodeExpiresAt: undefined,
+			});
 
 			logger.info("Password reset successfully");
 
@@ -367,7 +386,7 @@ auth.post(
 			});
 		} catch (error) {
 			logger.error("Password reset failed", error as Error);
-			throw createError.badRequest("Invalid or expired reset token");
+			throw createError.badRequest("Invalid or expired optCode");
 		}
 	},
 );

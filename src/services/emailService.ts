@@ -13,7 +13,7 @@ import {
 	sendDeliveryConfirmationEmail,
 	sendOrderConfirmationEmail,
 	sendOtpEmail,
-	sendPasswordResetEmail,
+	sendPasswordResetTemplate,
 	sendPaymentConfirmationEmail,
 	sendShippingConfirmationEmail,
 	welcomeTemplate,
@@ -56,11 +56,13 @@ export class EmailService {
 		return this.sendEmail(email);
 	}
 
-	static async sendPasswordResetEmail(
-		user: { firstName: string; lastName: string; email: string },
-		resetLink: string,
-	) {
-		const email = await sendPasswordResetEmail(user, resetLink);
+	static async sendPasswordResetEmail(user: {
+		firstName: string;
+		lastName: string;
+		email: string;
+		optCode: string;
+	}) {
+		const email = await sendPasswordResetTemplate(user);
 		return this.sendEmail(email);
 	}
 
