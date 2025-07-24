@@ -105,6 +105,7 @@ docker-compose -f docker-compose.prod.yml up -d
 ### Authentication Endpoints
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
+- `POST /api/auth/verify-email` - Verify email
 - `POST /api/auth/refresh` - Refresh tokens
 - `POST /api/auth/logout` - User logout
 - `GET /api/auth/me` - Get current user

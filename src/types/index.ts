@@ -33,6 +33,8 @@ export interface UpdateUserData {
 	avatarUrl?: string;
 	isActive?: boolean;
 	emailVerified?: boolean;
+	optCode?: string;
+	optCodeExpiresAt?: Date;
 }
 
 export interface Cart {

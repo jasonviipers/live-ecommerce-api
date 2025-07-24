@@ -309,7 +309,7 @@ auth.get("/me", authMiddleware, async (c) => {
 							rating: vendor.rating,
 							reviewCount: vendor.reviewCount,
 						}
-					: null,
+					: undefined,
 			},
 		});
 	} catch (error) {
@@ -328,9 +328,21 @@ auth.post(
 
 			const user = await UserRepository.findByEmail(email);
 			if (user) {
-				// TODO: Generate reset token and send email
-				// const resetToken = await tokenService.generatePasswordResetToken(user.id);
-				// await emailService.sendPasswordResetEmail(user.email, resetToken);
+				const optCode = generateOtp(6);
+				const optCodeExpiresAt = new Date();
+				optCodeExpiresAt.setMinutes(optCodeExpiresAt.getMinutes() + 15); // Expires in 15 minutes
+
+				await UserRepository.update(user.id, {
+					optCode,
+					optCodeExpiresAt,
+				});
+
+				await EmailService.sendPasswordResetEmail({
+					firstName: user.firstName,
+					lastName: user.lastName,
+					email: user.email,
+					optCode,
+				});
 			}
 
 			logger.info("Password reset requested", { email });
