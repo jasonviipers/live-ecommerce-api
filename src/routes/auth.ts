@@ -368,7 +368,7 @@ auth.post(
 			const { optCode, password } = c.req.valid("json");
 			const user = await UserRepository.findByOptCode(optCode);
 			if (!user) {
-				throw createError.badRequest("Invalid or expired reset token");
+				throw createError.badRequest("Invalid or expired optCode");
 			}
 
 			const hashPassword = await Bun.password.hash(password);
@@ -379,14 +379,14 @@ auth.post(
 				optCodeExpiresAt: undefined,
 			});
 
-			logger.info("Password reset successfully", { userId: user.id });
+			logger.info("Password reset successfully");
 
 			return c.json({
 				message: "Password reset successful",
 			});
 		} catch (error) {
 			logger.error("Password reset failed", error as Error);
-			throw createError.badRequest("Invalid or expired reset token");
+			throw createError.badRequest("Invalid or expired optCode");
 		}
 	},
 );
