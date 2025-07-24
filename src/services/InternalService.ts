@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { query } from "../database/connection";
+import { query, withTransaction } from "../database/connection";
 import { logger } from "../config/logger";
 import { config } from "../config";
 import { getRedisClient } from "@/database/redis";
@@ -732,12 +732,12 @@ export class InternalService extends EventEmitter {
 	// Helper methods (simplified implementations)
 	private async trackOrderShipped(data: OrderShippedEvent): Promise<void> {
 		try {
-			await AnalyticsService.trackEvent({
-				eventType: "ecommerce",
-				eventCategory: "order",
-				eventAction: "shipped",
-				eventLabel: data.orderId,
-				properties: {
+			await this.trackAnalyticsEvent(
+				"ecommerce",
+				"order",
+				"shipped",
+				data.orderId,
+				{
 					orderId: data.orderId,
 					trackingNumber: data.trackingInfo?.trackingNumber,
 					carrier: data.trackingInfo?.carrier,
@@ -749,7 +749,8 @@ export class InternalService extends EventEmitter {
 					shippingAddress: data.trackingInfo?.shippingAddress,
 					orderItems: data.trackingInfo?.orderItems,
 				},
-			});
+			);
+
 			logger.info("Order shipped tracked in analytics", {
 				orderId: data.orderId,
 				trackingNumber: data.trackingInfo?.trackingNumber,
@@ -846,19 +847,19 @@ export class InternalService extends EventEmitter {
 		amount: number,
 	): Promise<void> {
 		try {
-			await AnalyticsService.trackEvent({
-				eventType: "ecommerce",
-				eventCategory: "payment",
-				eventAction: "completed",
-				eventLabel: orderId,
-				eventValue: amount,
-				properties: {
+			await this.trackAnalyticsEvent(
+				"ecommerce",
+				"payment",
+				"completed",
+				orderId,
+				{
 					paymentId,
 					orderId,
 					amount,
 					timestamp: new Date().toISOString(),
 				},
-			});
+				amount,
+			);
 
 			logger.info("Payment completed tracked", { paymentId, orderId, amount });
 		} catch (error) {
@@ -917,18 +918,18 @@ export class InternalService extends EventEmitter {
 		errorCode: string,
 	): Promise<void> {
 		try {
-			await AnalyticsService.trackEvent({
-				eventType: "ecommerce",
-				eventCategory: "payment",
-				eventAction: "failed",
-				eventLabel: orderId,
-				properties: {
+			await this.trackAnalyticsEvent(
+				"ecommerce",
+				"payment",
+				"failed",
+				orderId,
+				{
 					paymentId,
 					orderId,
 					errorCode,
 					timestamp: new Date().toISOString(),
 				},
-			});
+			);
 
 			logger.info("Payment failed tracked", { paymentId, orderId, errorCode });
 		} catch (error) {
@@ -961,28 +962,38 @@ export class InternalService extends EventEmitter {
 
 	private async updateInventoryForOrder(orderId: string): Promise<void> {
 		try {
-			// Get order details to update inventory
-			const order = await OrderRepository.findById(orderId);
-			if (!order) {
-				logger.error("Order not found for inventory update", { orderId });
-				return;
-			}
-
-			const orderItems = await OrderRepository.getOrderItems(orderId);
-			for (const item of orderItems) {
-				const success = await ProductRepository.decreaseInventory(
-					item.productId,
-					item.quantity,
+			await withTransaction(async (client) => {
+				// Get order details to update inventory
+				const orderResult = await client.query(
+					"SELECT * FROM orders WHERE id = $1",
+					[orderId],
 				);
-				if (!success) {
-					logger.error("Failed to decrease inventory for product", {
-						orderId,
-						productId: item.productId,
-						quantity: item.quantity,
-					});
+
+				if (orderResult.rows.length === 0) {
+					throw new Error(`Order not found: ${orderId}`);
 				}
-			}
-			logger.info("Inventory updated for order", { orderId });
+
+				const orderItemsResult = await client.query(
+					"SELECT * FROM order_items WHERE order_id = $1",
+					[orderId],
+				);
+
+				for (const item of orderItemsResult.rows) {
+					// Update inventory atomically
+					const updateResult = await client.query(
+						"UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2 AND inventory_count >= $1 RETURNING inventory_count",
+						[item.quantity, item.product_id],
+					);
+
+					if (updateResult.rows.length === 0) {
+						throw new Error(
+							`Insufficient inventory for product ${item.product_id}. Required: ${item.quantity}`,
+						);
+					}
+				}
+
+				logger.info("Inventory updated for order", { orderId });
+			});
 		} catch (error) {
 			logger.error("Failed to update inventory for order", {
 				orderId,
@@ -1256,6 +1267,40 @@ export class InternalService extends EventEmitter {
 		}
 
 		return true;
+	}
+
+	private async trackAnalyticsEvent(
+		eventType: string,
+		eventCategory: string,
+		eventAction: string,
+		eventLabel: string,
+		properties: Record<string, any>,
+		eventValue?: number,
+	): Promise<void> {
+		try {
+			await AnalyticsService.trackEvent({
+				eventType,
+				eventCategory,
+				eventAction,
+				eventLabel,
+				eventValue,
+				properties: {
+					...properties,
+					timestamp: new Date().toISOString(),
+				},
+			});
+
+			logger.info(`${eventCategory} ${eventAction} tracked`, {
+				eventLabel,
+				...properties,
+			});
+		} catch (error) {
+			logger.error(`Failed to track ${eventCategory} ${eventAction}`, {
+				eventLabel,
+				...properties,
+				error,
+			});
+		}
 	}
 }
 
