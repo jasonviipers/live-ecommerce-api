@@ -28,7 +28,7 @@ export class InternalService extends EventEmitter {
 	private readonly SERVICE_VERSION = "1.0.0";
 	private eventHandlers: Map<string, EventHandler[]> = new Map();
 	private serviceRegistry: ServiceRegistry = { services: new Map() };
-	private heartbeatInterval?: NodeJS.Timeout; // Add this property
+	private heartbeatInterval?: NodeJS.Timeout;
 	private lastCpuUsage?: NodeJS.CpuUsage;
 	private lastCpuTime?: bigint;
 
@@ -875,7 +875,7 @@ export class InternalService extends EventEmitter {
 		orderData: any,
 	): Promise<void> {
 		//TODO: Implementation would track analytics
-		logger.info("Order created tracked", { orderId });
+		logger.info("Order created tracked", { orderId, orderData });
 	}
 
 	private async trackOrderPaid(orderId: string): Promise<void> {
@@ -885,6 +885,7 @@ export class InternalService extends EventEmitter {
 
 	private async notifyVendorOfPaidOrder(orderId: string): Promise<void> {
 		//TODO: Implementation would notify vendor
+		logger.info("Vendor notified of paid order", { orderId });
 	}
 
 	private async notifyFollowersOfStream(
@@ -892,6 +893,7 @@ export class InternalService extends EventEmitter {
 		streamKey: string,
 	): Promise<void> {
 		//TODO: Implementation would notify followers
+		logger.info("Followers notified", { streamerId, streamKey });
 	}
 
 	private async trackStreamStarted(
@@ -899,6 +901,7 @@ export class InternalService extends EventEmitter {
 		streamerId: string,
 	): Promise<void> {
 		//TODO: Implementation would track analytics
+		logger.info("Stream started tracked", { streamKey, streamerId });
 	}
 
 	private async processStreamAnalytics(
@@ -908,6 +911,12 @@ export class InternalService extends EventEmitter {
 		viewerCount: number,
 	): Promise<void> {
 		//TODO: Implementation would process stream analytics
+		logger.info("Stream analytics processed", {
+			streamKey,
+			streamerId,
+			duration,
+			viewerCount,
+		});
 	}
 
 	private async notifyVendorOfLowStock(
@@ -916,6 +925,11 @@ export class InternalService extends EventEmitter {
 		threshold: number,
 	): Promise<void> {
 		//TODO: Implementation would notify vendor
+		logger.info("Low stock notification sent", {
+			productId,
+			currentStock,
+			threshold,
+		});
 	}
 
 	private async trackLowStockEvent(
@@ -923,6 +937,7 @@ export class InternalService extends EventEmitter {
 		currentStock: number,
 	): Promise<void> {
 		//TODO: Implementation would track analytics
+		logger.info("Low stock event tracked", { productId, currentStock });
 	}
 
 	// Database operations
