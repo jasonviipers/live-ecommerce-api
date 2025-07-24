@@ -1,8 +1,13 @@
 import { query } from "@/database/connection";
+import EmailService from "@/services/emailService";
 import type { CreateUserData, UpdateUserData, User } from "@/types";
+import { generateOtp } from "@/utils/utils";
 
 export class UserRepository {
 	static async create(data: CreateUserData): Promise<User> {
+		const optCode = generateOtp(6);
+		const optCodeExpiresAt = new Date();
+		optCodeExpiresAt.setMinutes(optCodeExpiresAt.getMinutes() + 15); // Expires in 15 minutes
 		const passwordHash = await Bun.password.hash(data.password);
 		const sql = `
             INSERT INTO users (email, password_hash, first_name, last_name, phone, role, opt_code, opt_code_expires_at)
@@ -16,12 +21,20 @@ export class UserRepository {
 			data.lastName,
 			data.phone,
 			data.role || "customer",
-			data.optCode,
-			data.optCodeExpiresAt,
+			optCode,
+			optCodeExpiresAt,
 		];
 
 		const result = await query(sql, values);
-		return this.mapRowToUser(result.rows[0]);
+		const user = this.mapRowToUser(result.rows[0]);
+		await EmailService.sendOtpEmail({
+			email: user.email,
+			firstName: user.firstName,
+			lastName: user.lastName,
+			optCode,
+		});
+
+		return user;
 	}
 
 	static async findByOptCode(optCode: string): Promise<User | undefined> {
