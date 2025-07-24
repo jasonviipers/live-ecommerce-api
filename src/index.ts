@@ -12,6 +12,7 @@ import { rateLimiter } from "./middleware/rateLimiter";
 import { errorHandler } from "./middleware/errorHandler";
 import MediaService from "./services/mediaService";
 import InternalService from "./services/InternalService";
+import { getMediaServerService } from "./services/mediaServerService";
 
 // Database connections
 import {
@@ -38,7 +39,6 @@ import videoRoutes from "./routes/videos";
 import paymentRoutes from "./routes/payments";
 import uploadRoutes from "./routes/uploads";
 import notificationRoutes from "./routes/notifications";
-import { getMediaServerService } from "./services/mediaServerService";
 
 const app = new Hono();
 

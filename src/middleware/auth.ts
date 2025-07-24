@@ -273,25 +273,27 @@ export const requireVerifiedVendor = async (c: Context, next: Next) => {
 /* ------------------------------------------------------------------ */
 /* 8.  Token utilities                                                 */
 /* ------------------------------------------------------------------ */
-export const generateTokens = (payload: Omit<JWTPayload, "iat" | "exp">) => {
+export const generateTokens = async (
+	payload: Omit<JWTPayload, "iat" | "exp">,
+) => {
 	const now = Math.floor(Date.now() / 1000);
 
-	const accessToken = new SignJWT({ ...payload })
+	const accessToken = await new SignJWT({ ...payload })
 		.setProtectedHeader({ alg: "HS256" })
 		.setIssuedAt()
 		.setExpirationTime(now + config.jwt.expiresIn)
 		.sign(secret);
 
-	const refreshToken = new SignJWT({ ...payload })
+	const refreshToken = await new SignJWT({ ...payload })
 		.setProtectedHeader({ alg: "HS256" })
 		.setIssuedAt()
 		.setExpirationTime(now + config.jwt.refreshExpiresIn)
 		.sign(refreshSecret);
 
-	return Promise.all([accessToken, refreshToken]).then(([at, rt]) => ({
-		accessToken: at,
-		refreshToken: rt,
-	}));
+	return {
+		accessToken,
+		refreshToken,
+	};
 };
 
 export const verifyRefreshToken = async (

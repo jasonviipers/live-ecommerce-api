@@ -50,6 +50,7 @@ const envSchema = z.object({
 	SMTP_USER: z.string().email(),
 	SMTP_PASS: z.string(),
 	FROM_EMAIL: z.string().email(),
+	SMTP_SECURE: z.string().default("true"),
 
 	// RTMP Streaming Configuration
 	RTMP_PORT: z.string().default("1935").transform(Number),
@@ -170,7 +171,7 @@ export const config = {
 		smtp: {
 			host: env.SMTP_HOST,
 			port: env.SMTP_PORT,
-			secure: env.SMTP_PORT === 465,
+			secure: env.SMTP_SECURE === "true",
 			auth: {
 				user: env.SMTP_USER,
 				pass: env.SMTP_PASS,

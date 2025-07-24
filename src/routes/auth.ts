@@ -37,10 +37,6 @@ auth.post(
 				throw createError.conflict("Please provide a different email address");
 			}
 
-			const optCode = generateOtp(6);
-			const optCodeExpiresAt = new Date();
-			optCodeExpiresAt.setMinutes(optCodeExpiresAt.getMinutes() + 15); // Expires in 15 minutes
-
 			const user = await UserRepository.create({
 				email: data.email,
 				password: data.password,
@@ -48,16 +44,6 @@ auth.post(
 				lastName: data.lastName,
 				phone: data.phone,
 				role: data.role,
-				optCode,
-				optCodeExpiresAt,
-			});
-
-			// Send email verification notification
-			await EmailService.sendOtpEmail({
-				email: user.email,
-				firstName: user.firstName,
-				lastName: user.lastName,
-				optCode,
 			});
 
 			// Create vendor if role is vendor
@@ -71,18 +57,14 @@ auth.post(
 				});
 			}
 
-			const tokens = generateTokens({
+			const tokens = await generateTokens({
 				userId: user.id,
 				email: user.email,
 				role: user.role,
 				vendorId: vendor?.id,
 			});
 
-			logger.info("User registered successfully", {
-				userId: user.id,
-				email: user.email,
-				role: user.role,
-			});
+			logger.info("User registered successfully");
 
 			return c.json(
 				{
@@ -133,6 +115,10 @@ auth.post(
 				throw createError.forbidden("Account is deactivated");
 			}
 
+			if (!user.emailVerified) {
+				throw createError.unauthorized("Please verify your email");
+			}
+
 			const isValidPassword = await UserRepository.verifyPassword(
 				user,
 				password,
@@ -149,7 +135,7 @@ auth.post(
 
 			await UserRepository.updateLastLogin(user.id);
 
-			const tokens = generateTokens({
+			const tokens = await generateTokens({
 				userId: user.id,
 				email: user.email,
 				role: user.role,
@@ -272,8 +258,8 @@ auth.get("/me", authMiddleware, async (c) => {
 		const currentUser = c.get("user");
 
 		const user = await UserRepository.findById(currentUser.id);
-		if (!user) {
-			throw createError.notFound("User not found");
+		if (!user || !user.emailVerified) {
+			throw createError.unauthorized("User not found or email not verified");
 		}
 
 		// Get vendor info if user is a vendor

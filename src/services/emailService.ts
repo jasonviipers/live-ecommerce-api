@@ -12,7 +12,7 @@ import { emailTransporter } from "@/utils/email";
 import {
 	sendDeliveryConfirmationEmail,
 	sendOrderConfirmationEmail,
-	sendOtpEmail,
+	sendOtpEmailTemplate,
 	sendPasswordResetTemplate,
 	sendPaymentConfirmationEmail,
 	sendShippingConfirmationEmail,
@@ -44,7 +44,7 @@ export class EmailService {
 		email: string;
 		optCode: string;
 	}) {
-		const email = await sendOtpEmail(user);
+		const email = await sendOtpEmailTemplate(user);
 		return this.sendEmail(email);
 	}
 

@@ -6,7 +6,7 @@ import {
 } from "@/types";
 import { formatDisplayDate } from "@/utils/date";
 
-export const sendOtpEmail = (user: {
+export const sendOtpEmailTemplate = (user: {
 	firstName: string;
 	lastName: string;
 	email: string;
