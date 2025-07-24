@@ -5,9 +5,17 @@ import { config } from "../config";
 import { getRedisClient } from "@/database/redis";
 import { getWebhookService } from "./webhookService";
 import EmailService from "./emailService";
-import { OrderShippedEvent, ServiceHealth, ServiceRegistry } from "@/types";
+import {
+	Order,
+	OrderShippedEvent,
+	ServiceHealth,
+	ServiceRegistry,
+} from "@/types";
 import { createId } from "@paralleldrive/cuid2";
 import AnalyticsService from "./analyticsService";
+import OrderRepository from "@/repositories/order";
+import ProductRepository from "@/repositories/product";
+import { NotificationService } from "./notification";
 
 export interface ServiceEvent {
 	id: string;
@@ -624,13 +632,10 @@ export class InternalService extends EventEmitter {
 		try {
 			const { orderId, orderData } = event.data;
 
-			// Send order confirmation email
 			await EmailService.sendOrderConfirmationEmail(orderId, orderData);
 
-			// Update inventory
-			await this.updateInventoryForOrder(orderId, orderData);
+			await this.updateInventoryForOrder(orderId);
 
-			// Create analytics event
 			await this.trackOrderCreated(orderId, orderData);
 
 			logger.info("Order created event handled", { orderId });
@@ -811,10 +816,28 @@ export class InternalService extends EventEmitter {
 
 	private async updateOrderPaymentStatus(
 		orderId: string,
-		status: string,
+		status: Order["paymentStatus"],
 	): Promise<void> {
-		//TODO: Implementation would update order payment status
-		logger.info("Order payment status updated", { orderId, status });
+		try {
+			const success = await OrderRepository.updatePaymentStatus(
+				orderId,
+				status,
+			);
+			if (success) {
+				logger.info("Order payment status updated", { orderId, status });
+			} else {
+				logger.error("Failed to update order payment status", {
+					orderId,
+					status,
+				});
+			}
+		} catch (error) {
+			logger.error("Error updating order payment status", {
+				orderId,
+				status,
+				error,
+			});
+		}
 	}
 
 	private async trackPaymentCompleted(
@@ -822,17 +845,70 @@ export class InternalService extends EventEmitter {
 		orderId: string,
 		amount: number,
 	): Promise<void> {
-		//TODO: Implementation would track payment completed in analytics
+		try {
+			await AnalyticsService.trackEvent({
+				eventType: "ecommerce",
+				eventCategory: "payment",
+				eventAction: "completed",
+				eventLabel: orderId,
+				eventValue: amount,
+				properties: {
+					paymentId,
+					orderId,
+					amount,
+					timestamp: new Date().toISOString(),
+				},
+			});
 
-		logger.info("Payment completed tracked", { paymentId, orderId, amount });
+			logger.info("Payment completed tracked", { paymentId, orderId, amount });
+		} catch (error) {
+			logger.error("Failed to track payment completed", {
+				paymentId,
+				orderId,
+				amount,
+				error,
+			});
+		}
 	}
 
 	private async notifyPaymentFailure(
 		orderId: string,
 		errorMessage: string,
 	): Promise<void> {
-		//TODO: Implementation would notify customer of payment failure
-		logger.info("Payment failure notification sent", { orderId, errorMessage });
+		try {
+			// Get order details to notify the customer
+			const order = await OrderRepository.findById(orderId);
+			if (!order) {
+				logger.error("Order not found for payment failure notification", {
+					orderId,
+				});
+				return;
+			}
+
+			// Send notification to customer
+			await NotificationService.create({
+				userId: order.userId,
+				type: "order",
+				title: "Payment Failed",
+				message: `Payment for order ${order.orderNumber} failed: ${errorMessage}`,
+				data: {
+					orderId,
+					orderNumber: order.orderNumber,
+					errorMessage,
+				},
+			});
+
+			logger.info("Payment failure notification sent", {
+				orderId,
+				errorMessage,
+			});
+		} catch (error) {
+			logger.error("Failed to send payment failure notification", {
+				orderId,
+				errorMessage,
+				error,
+			});
+		}
 	}
 
 	private async trackPaymentFailed(
@@ -840,8 +916,29 @@ export class InternalService extends EventEmitter {
 		orderId: string,
 		errorCode: string,
 	): Promise<void> {
-		//TODO: Implementation would track payment failed in analytics
-		logger.info("Payment failed tracked", { paymentId, orderId, errorCode });
+		try {
+			await AnalyticsService.trackEvent({
+				eventType: "ecommerce",
+				eventCategory: "payment",
+				eventAction: "failed",
+				eventLabel: orderId,
+				properties: {
+					paymentId,
+					orderId,
+					errorCode,
+					timestamp: new Date().toISOString(),
+				},
+			});
+
+			logger.info("Payment failed tracked", { paymentId, orderId, errorCode });
+		} catch (error) {
+			logger.error("Failed to track payment failed", {
+				paymentId,
+				orderId,
+				errorCode,
+				error,
+			});
+		}
 	}
 
 	private async createUserAnalyticsProfile(userId: string): Promise<void> {
@@ -862,12 +959,36 @@ export class InternalService extends EventEmitter {
 		logger.info("User data cleaned up", { userId });
 	}
 
-	private async updateInventoryForOrder(
-		orderId: string,
-		orderData: any,
-	): Promise<void> {
-		//TODO: Implementation would update inventory
-		logger.info("Inventory updated for order", { orderId });
+	private async updateInventoryForOrder(orderId: string): Promise<void> {
+		try {
+			// Get order details to update inventory
+			const order = await OrderRepository.findById(orderId);
+			if (!order) {
+				logger.error("Order not found for inventory update", { orderId });
+				return;
+			}
+
+			const orderItems = await OrderRepository.getOrderItems(orderId);
+			for (const item of orderItems) {
+				const success = await ProductRepository.decreaseInventory(
+					item.productId,
+					item.quantity,
+				);
+				if (!success) {
+					logger.error("Failed to decrease inventory for product", {
+						orderId,
+						productId: item.productId,
+						quantity: item.quantity,
+					});
+				}
+			}
+			logger.info("Inventory updated for order", { orderId });
+		} catch (error) {
+			logger.error("Failed to update inventory for order", {
+				orderId,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
 	}
 
 	private async trackOrderCreated(

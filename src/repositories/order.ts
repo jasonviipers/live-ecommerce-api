@@ -94,7 +94,6 @@ export class OrderRepository {
 		});
 	}
 
-	// Find order by ID
 	static async findById(id: string): Promise<Order | null> {
 		const sql = "SELECT * FROM orders WHERE id = $1";
 		const result = await query(sql, [id]);
@@ -106,7 +105,6 @@ export class OrderRepository {
 		return this.mapRowToOrder(result.rows[0]);
 	}
 
-	// Find order by order number
 	static async findByOrderNumber(orderNumber: string): Promise<Order | null> {
 		const sql = "SELECT * FROM orders WHERE order_number = $1";
 		const result = await query(sql, [orderNumber]);
@@ -118,7 +116,6 @@ export class OrderRepository {
 		return this.mapRowToOrder(result.rows[0]);
 	}
 
-	// Find orders with pagination and filters
 	static async findAll(
 		page: number = 1,
 		limit: number = 20,
@@ -136,7 +133,6 @@ export class OrderRepository {
 		const values: any[] = [];
 		let paramCount = 0;
 
-		// Apply filters
 		if (filters.userId) {
 			whereClause += ` AND user_id = $${++paramCount}`;
 			values.push(filters.userId);
@@ -167,18 +163,16 @@ export class OrderRepository {
 			values.push(filters.dateTo);
 		}
 
-		// Get total count
 		const countSql = `SELECT COUNT(*) FROM orders ${whereClause}`;
 		const countResult = await query(countSql, values);
 		const total = parseInt(countResult.rows[0].count);
 
-		// Get orders
 		const sql = `
-      SELECT * FROM orders 
-      ${whereClause}
-      ORDER BY created_at DESC
-      LIMIT $${++paramCount} OFFSET $${++paramCount}
-    `;
+					SELECT * FROM orders 
+					${whereClause}
+					ORDER BY created_at DESC
+					LIMIT $${++paramCount} OFFSET $${++paramCount}
+			`;
 		values.push(limit, offset);
 
 		const result = await query(sql, values);
@@ -240,7 +234,6 @@ export class OrderRepository {
 		return this.mapRowToOrder(result.rows[0]);
 	}
 
-	// Update order status
 	static async updateStatus(
 		id: string,
 		status: Order["status"],
