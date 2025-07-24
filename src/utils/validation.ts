@@ -25,6 +25,10 @@ const refreshTokenSchema = z.object({
 	refreshToken: z.string().min(1, "Refresh token is required"),
 });
 
+const verifyEmailSchema = z.object({
+	optCode: z.string().min(1, "OTP is required"),
+});
+
 const forgotPasswordSchema = z.object({
 	email: z.string().email("Invalid email format"),
 });
@@ -316,4 +320,5 @@ export {
 	trackEventSchema,
 	vendorAnalyticsSchema,
 	dateRangeSchema,
+	verifyEmailSchema,
 };
