@@ -456,6 +456,71 @@ export class InternalService extends EventEmitter {
 		logger.info("Internal event handlers setup complete");
 	}
 
+	private async processOrderPayment(
+		orderId: string,
+		paymentId: string,
+		amount: number,
+		status: Order["paymentStatus"] | Order["status"],
+	): Promise<void> {
+		try {
+			await withTransaction(async (client) => {
+				// Update payment status
+				const paymentUpdateResult = await client.query(
+					"UPDATE orders SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *",
+					[status, orderId],
+				);
+
+				if (paymentUpdateResult.rows.length === 0) {
+					throw new Error(`Order not found: ${orderId}`);
+				}
+
+				// If payment is completed, update inventory
+				if (status === "completed") {
+					const orderItemsResult = await client.query(
+						"SELECT * FROM order_items WHERE order_id = $1",
+						[orderId],
+					);
+
+					for (const item of orderItemsResult.rows) {
+						const updateResult = await client.query(
+							"UPDATE products SET inventory_count = inventory_count - $1 WHERE id = $2 AND inventory_count >= $1 RETURNING inventory_count",
+							[item.quantity, item.product_id],
+						);
+
+						if (updateResult.rows.length === 0) {
+							throw new Error(
+								`Insufficient inventory for product ${item.product_id}. Required: ${item.quantity}`,
+							);
+						}
+					}
+				}
+
+				logger.info("Order payment processed successfully", {
+					orderId,
+					paymentId,
+					status,
+					amount,
+				});
+			});
+
+			// Track analytics outside of transaction
+			if (status === "completed") {
+				await this.trackPaymentCompleted(paymentId, orderId, amount);
+			} else if (status === "failed") {
+				await this.trackPaymentFailed(paymentId, orderId, "payment_failed");
+			}
+		} catch (error) {
+			logger.error("Failed to process order payment", {
+				orderId,
+				paymentId,
+				status,
+				amount,
+				error: error instanceof Error ? error.message : String(error),
+			});
+			throw error;
+		}
+	}
+
 	private async handleOrderShipped(event: ServiceEvent): Promise<void> {
 		try {
 			const { orderId, trackingInfo } = event.data;

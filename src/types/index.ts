@@ -81,7 +81,8 @@ export interface Order {
 		| "shipped"
 		| "delivered"
 		| "cancelled"
-		| "refunded";
+		| "refunded"
+		| "completed";
 	paymentStatus:
 		| "pending"
 		| "paid"
