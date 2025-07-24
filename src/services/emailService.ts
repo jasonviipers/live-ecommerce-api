@@ -12,6 +12,7 @@ import { emailTransporter } from "@/utils/email";
 import {
 	sendDeliveryConfirmationEmail,
 	sendOrderConfirmationEmail,
+	sendOtpEmail,
 	sendPasswordResetEmail,
 	sendPaymentConfirmationEmail,
 	sendShippingConfirmationEmail,
@@ -35,6 +36,16 @@ export class EmailService {
 			logger.error("Error sending email", error);
 			return false;
 		}
+	}
+
+	static async sendOtpEmail(user: {
+		firstName: string;
+		lastName: string;
+		email: string;
+		optCode: string;
+	}) {
+		const email = await sendOtpEmail(user);
+		return this.sendEmail(email);
 	}
 
 	static async sendWelcomeEmail(

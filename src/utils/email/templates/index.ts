@@ -6,6 +6,31 @@ import {
 } from "@/types";
 import { formatDisplayDate } from "@/utils/date";
 
+export const sendOtpEmail = (user: {
+	firstName: string;
+	lastName: string;
+	email: string;
+	optCode: string;
+}) => ({
+	to: user.email,
+	subject: "OTP Code for Live Ecommerce",
+	html: `
+            <p>Hello ${user.firstName} ${user.lastName},</p>
+            <p>Your OTP code is: ${user.optCode}</p>
+			<p>Please enter this code to complete your registration process.</p>
+			<p>Note: This code will expire in 15 minutes.</p>
+            <p>If you did not register with Live Ecommerce, please ignore this email.</p>
+        `,
+	text: `Hello ${user.firstName} ${user.lastName},
+
+Your OTP code is: ${user.optCode}
+
+If you did not register with Live Ecommerce, please ignore this email.
+
+  © ${new Date().getFullYear()} Live Ecommerce. All rights reserved.
+`,
+});
+
 export const welcomeTemplate = (
 	user: { firstName: string; lastName: string; email: string },
 	verificationLink: string,

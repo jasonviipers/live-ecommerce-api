@@ -22,6 +22,8 @@ export interface CreateUserData {
 	lastName: string;
 	phone?: string;
 	role?: "vendor" | "customer";
+	optCode?: string;
+	optCodeExpiresAt?: Date;
 }
 
 export interface UpdateUserData {

@@ -18,6 +18,8 @@ import {
 	resetPasswordSchema,
 	changePasswordSchema,
 } from "@/utils/validation";
+import EmailService from "@/services/emailService";
+import { generateOtp } from "@/utils/utils";
 
 const auth = new Hono();
 
@@ -34,6 +36,10 @@ auth.post(
 				throw createError.conflict("Please provide a different email address");
 			}
 
+			const optCode = generateOtp(6);
+			const optCodeExpiresAt = new Date();
+			optCodeExpiresAt.setMinutes(optCodeExpiresAt.getMinutes() + 15); // Expires in 15 minutes
+
 			const user = await UserRepository.create({
 				email: data.email,
 				password: data.password,
@@ -41,6 +47,16 @@ auth.post(
 				lastName: data.lastName,
 				phone: data.phone,
 				role: data.role,
+				optCode,
+				optCodeExpiresAt,
+			});
+
+			// Send email verification notification
+			await EmailService.sendOtpEmail({
+				email: user.email,
+				firstName: user.firstName,
+				lastName: user.lastName,
+				optCode,
 			});
 
 			// Create vendor if role is vendor

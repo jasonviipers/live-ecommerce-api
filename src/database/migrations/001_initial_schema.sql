@@ -20,6 +20,8 @@ CREATE TABLE users (
     is_active BOOLEAN DEFAULT true,
     email_verified BOOLEAN DEFAULT false,
     email_verified_at TIMESTAMP WITH TIME ZONE,
+    opt_code VARCHAR(6),
+    opt_code_expires_at TIMESTAMP WITH TIME ZONE,
     last_login_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -323,6 +325,8 @@ CREATE TABLE notifications (
 );
 
 -- Create indexes for better performance
+CREATE INDEX idx_users_opt_code ON users(opt_code) WHERE opt_code IS NOT NULL;
+CREATE INDEX idx_users_opt_code_expires_at ON users(opt_code_expires_at) WHERE opt_code_expires_at IS NOT NULL;
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_created_at ON users(created_at);
