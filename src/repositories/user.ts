@@ -24,6 +24,18 @@ export class UserRepository {
 		return this.mapRowToUser(result.rows[0]);
 	}
 
+	static async findByOptCode(optCode: string): Promise<User | undefined> {
+		const sql =
+			"SELECT * FROM users WHERE opt_code = $1 AND opt_code_expires_at > CURRENT_TIMESTAMP";
+		const result = await query(sql, [optCode]);
+
+		if (result.rows.length === 0) {
+			return undefined;
+		}
+
+		return this.mapRowToUser(result.rows[0]);
+	}
+
 	static async findById(id: string): Promise<User | null> {
 		const sql = "SELECT * FROM users WHERE id = $1";
 		const result = await query(sql, [id]);

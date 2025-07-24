@@ -17,6 +17,7 @@ import {
 	refreshTokenSchema,
 	resetPasswordSchema,
 	changePasswordSchema,
+	verifyEmailSchema,
 } from "@/utils/validation";
 import EmailService from "@/services/emailService";
 import { generateOtp } from "@/utils/utils";
@@ -223,6 +224,28 @@ auth.post("/refresh", zValidator("json", refreshTokenSchema), async (c) => {
 	} catch (error) {
 		logger.error("Token refresh failed", error as Error);
 		throw createError.unauthorized("Invalid refresh token");
+	}
+});
+
+auth.post("/verify-email", zValidator("json", verifyEmailSchema), async (c) => {
+	try {
+		const { optCode } = c.req.valid("json");
+
+		const user = await UserRepository.findByOptCode(optCode);
+		if (!user) {
+			throw createError.unauthorized("Invalid or expired OTP");
+		}
+
+		await UserRepository.verifyEmail(user.id);
+
+		logger.info("Email verified successfully", { userId: user.id });
+
+		return c.json({
+			message: "Email verified successfully",
+		});
+	} catch (error) {
+		logger.error("Email verification failed", error as Error);
+		throw createError.unauthorized("Invalid or expired OTP");
 	}
 });
 
