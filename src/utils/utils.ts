@@ -1,7 +1,7 @@
 export const generateOtp = (length: number = 6) => {
-    if (!Number.isInteger(length) || length < 4 || length > 12) {
-        throw new Error("Length must be an integer between 4 and 12");
-    }
+	if (!Number.isInteger(length) || length < 4 || length > 12) {
+		throw new Error("Length must be an integer between 4 and 12");
+	}
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	const randomString = Array.from(
 		{ length },

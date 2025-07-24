@@ -122,7 +122,6 @@ export class NotificationService {
 		return result.rowCount > 0;
 	}
 
-	// Mark all notifications as read for user
 	static async markAllAsRead(userId: string): Promise<number> {
 		const sql = `
 			UPDATE notifications 
@@ -135,7 +134,6 @@ export class NotificationService {
 		return result.rowCount;
 	}
 
-	// Delete notification
 	static async delete(
 		notificationId: string,
 		userId: string,
@@ -324,7 +322,17 @@ export class NotificationService {
 	}
 
 	// Helper method to map database row to Notification object
-	private static mapRowToNotification(row: any): Notification {
+	private static mapRowToNotification(row: {
+		id: string;
+		user_id: string;
+		type: Notification["type"];
+		title: string;
+		message: string;
+		data: Record<string, unknown> | null;
+		is_read: boolean;
+		created_at: Date;
+		read_at: Date | undefined;
+	}): Notification {
 		return {
 			id: row.id,
 			userId: row.user_id,
