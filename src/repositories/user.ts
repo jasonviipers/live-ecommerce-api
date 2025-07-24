@@ -27,12 +27,16 @@ export class UserRepository {
 
 		const result = await query(sql, values);
 		const user = this.mapRowToUser(result.rows[0]);
-		await EmailService.sendOtpEmail({
-			email: user.email,
-			firstName: user.firstName,
-			lastName: user.lastName,
-			optCode,
-		});
+		try {
+			await EmailService.sendOtpEmail({
+				email: user.email,
+				firstName: user.firstName,
+				lastName: user.lastName,
+				optCode,
+			});
+		} catch (error) {
+			console.error("Failed to send OTP email:", error);
+		}
 
 		return user;
 	}

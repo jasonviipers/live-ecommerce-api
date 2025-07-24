@@ -625,7 +625,8 @@ export class ChatService extends EventEmitter {
 		avatar?: string;
 	}> {
 		try {
-			const sql = "SELECT username, avatar FROM users WHERE id = $1";
+			const sql =
+				"SELECT first_name, last_name, avatar_url FROM users WHERE id = $1";
 			const result = await query(sql, [userId]);
 
 			if (result.rows.length === 0) {
@@ -634,8 +635,9 @@ export class ChatService extends EventEmitter {
 			}
 
 			return {
-				username: result.rows[0].username,
-				avatar: result.rows[0].avatar,
+				username:
+					`${result.rows[0].first_name} ${result.rows[0].last_name}`.trim(),
+				avatar: result.rows[0].avatar_url,
 			};
 		} catch (error) {
 			if (error instanceof UserNotFoundError) {
