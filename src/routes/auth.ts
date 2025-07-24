@@ -18,7 +18,6 @@ import {
 	resetPasswordSchema,
 	changePasswordSchema,
 } from "@/utils/validation";
-import { NotificationService } from "@/services/notification";
 import EmailService from "@/services/emailService";
 import { generateOtp } from "@/utils/utils";
 
