@@ -135,11 +135,12 @@ export class UserRepository {
 		}
 
 		const sql = `
-      UPDATE users 
-      SET ${fields.join(", ")}
-      WHERE id = $${++paramCount}
-      RETURNING *
-    `;
+			UPDATE users 
+			SET ${fields.join(", ")}
+			WHERE id = $${++paramCount}
+			RETURNING *
+			`;
+
 		values.push(id);
 
 		const result = await query(sql, values);

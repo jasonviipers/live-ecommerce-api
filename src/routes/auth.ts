@@ -365,14 +365,21 @@ auth.post(
 	zValidator("json", resetPasswordSchema),
 	async (c) => {
 		try {
-			const { token, password } = c.req.valid("json");
+			const { optCode, password } = c.req.valid("json");
+			const user = await UserRepository.findByOptCode(optCode);
+			if (!user) {
+				throw createError.badRequest("Invalid or expired reset token");
+			}
 
-			// TODO: Verify reset token and update password
-			// const userId = await tokenService.verifyPasswordResetToken(token);
-			// await UserRepository.updatePassword(userId, password);
-			// await tokenService.revokePasswordResetToken(token);
+			const hashPassword = await Bun.password.hash(password);
 
-			logger.info("Password reset successfully");
+			await UserRepository.update(user.id, {
+				passwordHash: hashPassword,
+				optCode: undefined,
+				optCodeExpiresAt: undefined,
+			});
+
+			logger.info("Password reset successfully", { userId: user.id });
 
 			return c.json({
 				message: "Password reset successful",

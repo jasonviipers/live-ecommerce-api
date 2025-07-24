@@ -33,8 +33,9 @@ export interface UpdateUserData {
 	avatarUrl?: string;
 	isActive?: boolean;
 	emailVerified?: boolean;
-	optCode?: string;
-	optCodeExpiresAt?: Date;
+	optCode?: string | undefined;
+	optCodeExpiresAt?: Date | undefined;
+	passwordHash?: string | undefined;
 }
 
 export interface Cart {
