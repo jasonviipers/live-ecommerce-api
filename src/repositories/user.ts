@@ -5,8 +5,8 @@ export class UserRepository {
 	static async create(data: CreateUserData): Promise<User> {
 		const passwordHash = await Bun.password.hash(data.password);
 		const sql = `
-            INSERT INTO users (email, password_hash, first_name, last_name, phone, role)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO users (email, password_hash, first_name, last_name, phone, role, opt_code, opt_code_expires_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
         `;
 		const values = [
@@ -16,6 +16,8 @@ export class UserRepository {
 			data.lastName,
 			data.phone,
 			data.role || "customer",
+			data.optCode,
+			data.optCodeExpiresAt,
 		];
 
 		const result = await query(sql, values);

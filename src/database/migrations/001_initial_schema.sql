@@ -20,6 +20,8 @@ CREATE TABLE users (
     is_active BOOLEAN DEFAULT true,
     email_verified BOOLEAN DEFAULT false,
     email_verified_at TIMESTAMP WITH TIME ZONE,
+    opt_code VARCHAR(6) UNIQUE,
+    opt_code_expires_at TIMESTAMP WITH TIME ZONE,
     last_login_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
