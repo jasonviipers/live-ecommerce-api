@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
 import { authMiddleware, optionalAuthMiddleware } from "@/middleware/auth";
 import { logger } from "@/config/logger";
 import { getChatService } from "@/services/chatService";
@@ -54,7 +53,8 @@ chat.post(
 	async (c) => {
 		try {
 			const streamKey = c.req.param("streamKey");
-			const userId = c.get("userId");
+			const user = c.get("user");
+			const userId = user.id;
 			const { message, messageType } = c.req.valid("json");
 
 			const chatService = await getChatService();
@@ -98,7 +98,8 @@ chat.delete("/:streamKey/messages/:messageId", authMiddleware, async (c) => {
 	try {
 		const streamKey = c.req.param("streamKey");
 		const messageId = c.req.param("messageId");
-		const userId = c.get("userId");
+		const user = c.get("user");
+		const userId = user.id;
 
 		const chatService = await getChatService();
 		const success = await chatService.deleteMessage(
@@ -141,7 +142,8 @@ chat.post(
 	async (c) => {
 		try {
 			const streamKey = c.req.param("streamKey");
-			const bannedBy = c.get("userId");
+			const user = c.get("user");
+			const bannedBy = user.id;
 			const { userId, duration } = c.req.valid("json");
 
 			const chatService = await getChatService();
@@ -227,7 +229,8 @@ chat.post(
 	async (c) => {
 		try {
 			const streamKey = c.req.param("streamKey");
-			const addedBy = c.get("userId");
+			const user = c.get("user");
+			const addedBy = user.id;
 			const { userId } = c.req.valid("json");
 
 			const chatService = await getChatService();
@@ -276,7 +279,8 @@ chat.patch(
 	async (c) => {
 		try {
 			const streamKey = c.req.param("streamKey");
-			const updatedBy = c.get("userId");
+			const user = c.get("user");
+			const updatedBy = user.id;
 			const settings = c.req.valid("json");
 
 			const chatService = await getChatService();
@@ -322,7 +326,8 @@ chat.patch(
 	async (c) => {
 		try {
 			const streamKey = c.req.param("streamKey");
-			const updatedBy = c.get("userId");
+			const user = c.get("user");
+			const updatedBy = user.id;
 			const modeSettings = c.req.valid("json");
 
 			const chatService = await getChatService();
