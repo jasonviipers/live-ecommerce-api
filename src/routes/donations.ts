@@ -265,22 +265,23 @@ donations.patch(
 				);
 			}
 
-			// Update goal properties
-			if (updates.title) goal.title = updates.title;
-			if (updates.description !== undefined)
-				goal.description = updates.description;
-			if (updates.targetAmount) goal.targetAmount = updates.targetAmount;
-			if (updates.endDate) goal.endDate = new Date(updates.endDate);
-			if (updates.isActive !== undefined) goal.isActive = updates.isActive;
+			const updatedGoal = {
+				...goal,
+				...(updates.title && { title: updates.title }),
+				...(updates.description !== undefined && {
+					description: updates.description,
+				}),
+				...(updates.targetAmount && { targetAmount: updates.targetAmount }),
+				...(updates.endDate && { endDate: new Date(updates.endDate) }),
+				...(updates.isActive !== undefined && { isActive: updates.isActive }),
+				updatedAt: new Date(),
+			};
 
-			goal.updatedAt = new Date();
-
-			// Update in database and cache
-			await (donationService as any).updateDonationGoal(goal);
+			await (donationService as any).updateDonationGoal(updatedGoal);
 
 			return c.json({
 				success: true,
-				data: goal,
+				data: updatedGoal,
 				message: "Donation goal updated successfully",
 			});
 		} catch (error) {

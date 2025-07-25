@@ -887,6 +887,42 @@ export class DonationService extends EventEmitter {
 			createdAt: row.created_at,
 		};
 	}
+
+	async updateDonationGoalFields(
+		goalId: string,
+		updates: Partial<
+			Pick<
+				DonationGoal,
+				"title" | "description" | "targetAmount" | "endDate" | "isActive"
+			>
+		>,
+	): Promise<DonationGoal | null> {
+		try {
+			const goal = this.activeDonationGoals.get(goalId);
+
+			if (!goal) {
+				return null;
+			}
+
+			// Create updated goal with only the provided fields
+			const updatedGoal: DonationGoal = {
+				...goal,
+				...updates,
+				updatedAt: new Date(),
+			};
+
+			await this.updateDonationGoal(updatedGoal);
+
+			return updatedGoal;
+		} catch (error) {
+			logger.error("Failed to update donation goal fields", {
+				goalId,
+				updates,
+				error,
+			});
+			throw error;
+		}
+	}
 }
 
 let donationService: DonationService | null = null;
