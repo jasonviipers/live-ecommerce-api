@@ -12,7 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      # Install dependencies
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
@@ -21,12 +20,14 @@ jobs:
       - name: Install dependencies
         run: bun install
         
-      # Code quality checks
-      - name: Lint code with Biome
-        run: bunx biome lint --apply-unsafe ./src
+      # Lint check
+      - name: Run linter
+        run: bun run lint
         
-      - name: Format check
-        run: bunx biome format --check ./src
+      # Format check
+      - name: Check formatting
+        run: bun run format:check
         
+      # Type checking
       - name: Type check
         run: bun run type-check
