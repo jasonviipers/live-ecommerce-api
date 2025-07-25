@@ -14,9 +14,10 @@ import {
 import { createId } from "@paralleldrive/cuid2";
 import AnalyticsService from "./analyticsService";
 import OrderRepository from "@/repositories/order";
-import ProductRepository from "@/repositories/product";
 import { NotificationService } from "./notification";
 import { getChatService } from "./chatService";
+import { getSocketManager } from "@/config/socket";
+import StreamRepository from "@/repositories/stream";
 
 export interface ServiceEvent {
 	id: string;
@@ -827,13 +828,129 @@ export class InternalService extends EventEmitter {
 	}
 
 	private async trackOrderDelivered(orderId: string): Promise<void> {
-		//TODO: Implementation would track order delivered in analytics
-		logger.info("Order delivered tracked", { orderId });
+		try {
+			const order = await OrderRepository.findById(orderId);
+			if (!order) {
+				logger.error("Order not found for delivery tracking", { orderId });
+				return;
+			}
+
+			// Get order items for analytics
+			const orderItems = await OrderRepository.getOrderItems(orderId);
+
+			// Track delivery event in analytics
+			await this.trackAnalyticsEvent(
+				"ecommerce",
+				"order",
+				"delivered",
+				orderId,
+				{
+					orderId,
+					orderNumber: order.orderNumber,
+					userId: order.userId,
+					vendorId: order.vendorId,
+					totalAmount: order.totalAmount,
+					currency: order.currency,
+					deliveredAt: order.deliveredAt || new Date(),
+					shippedAt: order.shippedAt,
+					orderItems: orderItems.map((item) => ({
+						productId: item.productId,
+						productName: item.productName,
+						variantId: item.variantId,
+						variantName: item.variantName,
+						quantity: item.quantity,
+						price: item.price,
+						total: item.total,
+					})),
+					shippingAddress: order.shippingAddress,
+					deliveryDuration:
+						order.shippedAt && order.deliveredAt
+							? Math.round(
+									(order.deliveredAt.getTime() - order.shippedAt.getTime()) /
+										(1000 * 60 * 60 * 24),
+								) // days
+							: null,
+				},
+				order.totalAmount,
+			);
+
+			logger.info("Order delivered tracked in analytics", {
+				orderId,
+				orderNumber: order.orderNumber,
+				totalAmount: order.totalAmount,
+				deliveredAt: order.deliveredAt,
+			});
+		} catch (error) {
+			logger.error("Failed to track order delivered in analytics", {
+				orderId,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
 	}
 
 	private async updateStreamViewerCount(streamKey: string): Promise<void> {
-		//TODO: Implementation would update stream viewer count
-		logger.info("Stream viewer count updated", { streamKey });
+		try {
+			const stream = await StreamRepository.findByStreamKey(streamKey);
+			if (!stream) {
+				logger.error("Stream not found for viewer count update", { streamKey });
+				return;
+			}
+
+			// Get current viewer count from socket manager
+			const socketManager = getSocketManager();
+			const currentViewerCount = socketManager.getStreamViewerCount(stream.id);
+
+			// Update viewer count in database
+			const success = await StreamRepository.updateViewerCount(
+				stream.id,
+				currentViewerCount,
+			);
+
+			if (success) {
+				// Cache viewer count in Redis
+				try {
+					const redisClient = getRedisClient();
+					await redisClient.setEx(
+						`stream:${stream.id}:viewers`,
+						60, // 1 minute TTL
+						currentViewerCount.toString(),
+					);
+				} catch (redisError) {
+					logger.error("Failed to cache viewer count in Redis", {
+						streamKey,
+						streamId: stream.id,
+						viewerCount: currentViewerCount,
+						error: redisError,
+					});
+				}
+
+				// Broadcast viewer count update to stream room
+				await socketManager.broadcastStreamEvent(
+					stream.id,
+					"stream:viewer_count",
+					{
+						viewerCount: currentViewerCount,
+					},
+				);
+
+				logger.info("Stream viewer count updated successfully", {
+					streamKey,
+					streamId: stream.id,
+					viewerCount: currentViewerCount,
+				});
+			} else {
+				logger.error("Failed to update stream viewer count in database", {
+					streamKey,
+					streamId: stream.id,
+					viewerCount: currentViewerCount,
+				});
+			}
+		} catch (error) {
+			logger.error("Error updating stream viewer count", {
+				streamKey,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
 	}
 
 	private async trackViewerJoined(
