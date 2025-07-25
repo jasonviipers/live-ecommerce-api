@@ -99,87 +99,6 @@ docker-compose up -d
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
-
-## 📚 API Documentation
-
-### Authentication Endpoints
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `POST /api/auth/verify-email` - Verify email
-- `POST /api/auth/refresh` - Refresh tokens
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/me` - Get current user
-- `POST /api/auth/forgot-password` - Request password reset
-- `POST /api/auth/reset-password` - Reset password
-- `POST /api/auth/change-password` - Change password
-
-### User Management
-- `GET /api/users` - Get all users (admin)
-- `GET /api/users/:id` - Get user by ID
-- `PUT /api/users/:id` - Update user
-- `DELETE /api/users/:id` - Delete user (admin)
-
-### Vendor Management
-- `GET /api/vendors` - Get all vendors
-- `GET /api/vendors/:id` - Get vendor by ID
-- `POST /api/vendors` - Create vendor
-- `PUT /api/vendors/:id` - Update vendor
-- `DELETE /api/vendors/:id` - Delete vendor
-
-### Product Management
-- `GET /api/products` - Get all products
-- `GET /api/products/:id` - Get product by ID
-- `POST /api/products` - Create product
-- `PUT /api/products/:id` - Update product
-- `DELETE /api/products/:id` - Delete product
-
-### Order Management
-- `GET /api/orders` - Get user orders
-- `GET /api/orders/:id` - Get order by ID
-- `POST /api/orders` - Create order
-- `PATCH /api/orders/:id/status` - Update order status
-
-### Live Streaming
-- `GET /api/streams` - Get all streams
-- `GET /api/streams/live` - Get live streams
-- `GET /api/streams/:id` - Get stream by ID
-- `POST /api/streams` - Create stream
-- `POST /api/streams/:id/start` - Start stream
-- `POST /api/streams/:id/end` - End stream
-- `GET /api/streams/:id/chat` - Get stream chat
-
-### Video Management
-- `GET /api/videos` - Get all videos
-- `GET /api/videos/trending` - Get trending videos
-- `GET /api/videos/:id` - Get video by ID
-- `POST /api/videos` - Upload video
-- `PUT /api/videos/:id` - Update video
-- `DELETE /api/videos/:id` - Delete video
-- `POST /api/videos/:id/like` - Like video
-- `GET /api/videos/:id/comments` - Get video comments
-
-### Payment Processing
-- `POST /api/payments/intent` - Create payment intent
-- `POST /api/payments/process` - Process payment
-- `GET /api/payments/history` - Get payment history
-- `POST /api/payments/webhook/stripe` - Stripe webhook
-- `GET /api/payments/payouts` - Get vendor payouts
-- `POST /api/payments/payouts/request` - Request payout
-
-### Analytics
-- `GET /api/analytics/dashboard` - Get dashboard analytics
-- `GET /api/analytics/streams/:id` - Get stream analytics
-- `GET /api/analytics/videos/:id` - Get video analytics
-- `GET /api/analytics/sales` - Get sales analytics
-- `GET /api/analytics/platform` - Get platform analytics (admin)
-- `POST /api/analytics/track` - Track event
-
-### File Uploads
-- `POST /api/uploads/image` - Upload image
-- `POST /api/uploads/video` - Upload video
-- `POST /api/uploads/avatar` - Upload avatar
-- `GET /api/uploads/status/:id` - Get upload status
-
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -299,4 +218,3 @@ For support and questions:
 ## 🔄 Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and updates.
-
