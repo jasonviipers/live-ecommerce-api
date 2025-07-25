@@ -292,6 +292,38 @@ const vendorAnalyticsSchema = dateRangeSchema.extend({
 	vendorId: z.string().uuid().optional(),
 });
 
+const sendMessageSchema = z.object({
+	message: z.string().min(1).max(500),
+	messageType: z.enum(["text", "emoji", "sticker"]).optional().default("text"),
+});
+
+const deleteMessageSchema = z.object({
+	messageId: z.string().uuid("Invalid message ID"),
+});
+
+const banUserSchema = z.object({
+	userId: z.string().uuid("Invalid user ID"),
+	duration: z.number().min(1).max(10080).optional(), // max 1 week in minutes
+});
+
+const addModeratorSchema = z.object({
+	userId: z.string().uuid("Invalid user ID"),
+});
+
+const updateSettingsSchema = z.object({
+	maxMessageLength: z.number().min(50).max(1000).optional(),
+	allowLinks: z.boolean().optional(),
+	allowEmotes: z.boolean().optional(),
+	allowStickers: z.boolean().optional(),
+	profanityFilter: z.boolean().optional(),
+});
+
+const updateChatModeSchema = z.object({
+	slowMode: z.number().min(0).max(300).optional(), // max 5 minutes
+	subscriberOnly: z.boolean().optional(),
+	emotesOnly: z.boolean().optional(),
+});
+
 export {
 	registerSchema,
 	loginSchema,
@@ -321,4 +353,10 @@ export {
 	vendorAnalyticsSchema,
 	dateRangeSchema,
 	verifyEmailSchema,
+	sendMessageSchema,
+	deleteMessageSchema,
+	banUserSchema,
+	addModeratorSchema,
+	updateSettingsSchema,
+	updateChatModeSchema,
 };

@@ -18,9 +18,9 @@ import {
 import { Filter } from "bad-words";
 
 export class ChatService extends EventEmitter {
-	private chatRooms: Map<string, ChatRoom> = new Map();
-	private userLastMessage: Map<string, Date> = new Map();
-	private messageCache: Map<string, ChatMessage[]> = new Map();
+	private readonly chatRooms: Map<string, ChatRoom> = new Map();
+	private readonly userLastMessage: Map<string, Date> = new Map();
+	private readonly messageCache: Map<string, ChatMessage[]> = new Map();
 	private cleanupIntervals: NodeJS.Timeout[] = [];
 	private readonly MAX_CACHED_MESSAGES = 100;
 	private readonly DEFAULT_SLOW_MODE = 0;
@@ -41,10 +41,8 @@ export class ChatService extends EventEmitter {
 
 	private async initializeService(): Promise<void> {
 		try {
-			// Load active chat rooms from database
 			await this.loadActiveChatRooms();
 
-			// Setup cleanup intervals
 			this.setupCleanupIntervals();
 
 			logger.info("Chat service initialized");
@@ -119,7 +117,6 @@ export class ChatService extends EventEmitter {
 			throw new ChatRoomNotFoundError(streamKey);
 		}
 
-		// Check if user is banned
 		const isBanned = await this.checkUserBanStatus(streamKey, userId);
 		if (isBanned) {
 			logger.error("User is banned from chat", { streamKey, userId });
@@ -191,7 +188,7 @@ export class ChatService extends EventEmitter {
 		messageId: string,
 		deletedBy: string,
 		streamKey: string,
-	): Promise<void> {
+	): Promise<boolean> {
 		const chatRoom = this.chatRooms.get(streamKey);
 
 		if (!chatRoom) {
@@ -209,7 +206,6 @@ export class ChatService extends EventEmitter {
 		}
 
 		try {
-			// Update message in cache
 			const messages = this.messageCache.get(streamKey) || [];
 			const messageIndex = messages.findIndex((m) => m.id === messageId);
 
@@ -229,12 +225,13 @@ export class ChatService extends EventEmitter {
 
 			if (result.rowCount === 0) {
 				logger.error("Message not found", { messageId, streamKey });
-				throw new MessageNotFoundError(messageId);
+				return false;
 			}
 
 			logger.info("Message deleted", { messageId, deletedBy, streamKey });
 
 			this.emit("messageDeleted", { messageId, deletedBy, streamKey });
+			return true;
 		} catch (error) {
 			if (error instanceof MessageNotFoundError) {
 				throw error;
@@ -249,7 +246,7 @@ export class ChatService extends EventEmitter {
 		userId: string,
 		bannedBy: string,
 		duration?: number,
-	): Promise<void> {
+	): Promise<boolean> {
 		const chatRoom = this.chatRooms.get(streamKey);
 
 		if (!chatRoom) {
@@ -286,13 +283,14 @@ export class ChatService extends EventEmitter {
 			});
 
 			this.emit("userBanned", { streamKey, userId, bannedBy, duration });
+			return true;
 		} catch (error) {
 			logger.error("Failed to ban user", { streamKey, userId, error });
 			throw new DatabaseOperationError("ban user", error);
 		}
 	}
 
-	async unbanUser(streamKey: string, userId: string): Promise<void> {
+	async unbanUser(streamKey: string, userId: string): Promise<boolean> {
 		const chatRoom = this.chatRooms.get(streamKey);
 
 		if (!chatRoom) {
@@ -321,6 +319,7 @@ export class ChatService extends EventEmitter {
 			logger.info("User unbanned from chat", { streamKey, userId });
 
 			this.emit("userUnbanned", { streamKey, userId });
+			return true;
 		} catch (error) {
 			logger.error("Failed to unban user", { streamKey, userId, error });
 			throw new DatabaseOperationError("unban user", error);
@@ -386,7 +385,7 @@ export class ChatService extends EventEmitter {
 		streamKey: string,
 		userId: string,
 		addedBy: string,
-	): Promise<void> {
+	): Promise<boolean> {
 		const chatRoom = this.chatRooms.get(streamKey);
 
 		if (!chatRoom) {
@@ -415,6 +414,7 @@ export class ChatService extends EventEmitter {
 			logger.info("Moderator added", { streamKey, userId, addedBy });
 
 			this.emit("moderatorAdded", { streamKey, userId, addedBy });
+			return true;
 		} catch (error) {
 			logger.error("Failed to add moderator", { streamKey, userId, error });
 			throw new DatabaseOperationError("add moderator", error);
@@ -425,7 +425,7 @@ export class ChatService extends EventEmitter {
 		streamKey: string,
 		settings: Partial<ChatRoom["settings"]>,
 		updatedBy: string,
-	): Promise<void> {
+	): Promise<boolean> {
 		const chatRoom = this.chatRooms.get(streamKey);
 
 		if (!chatRoom) {
@@ -453,6 +453,7 @@ export class ChatService extends EventEmitter {
 			logger.info("Chat settings updated", { streamKey, settings, updatedBy });
 
 			this.emit("settingsUpdated", { streamKey, settings, updatedBy });
+			return true;
 		} catch (error) {
 			logger.error("Failed to update chat settings", { streamKey, error });
 			throw new DatabaseOperationError("update chat settings", error);
@@ -595,6 +596,61 @@ export class ChatService extends EventEmitter {
 			logger.error("Failed to close chat room", { streamKey, error });
 			throw new DatabaseOperationError("close chat room", error);
 		}
+	}
+
+	async updateChatMode(
+		streamKey: string,
+		mode: {
+			slowMode?: number;
+			subscriberOnly?: boolean;
+			emotesOnly?: boolean;
+		},
+		updatedBy: string,
+	): Promise<void> {
+		const chatRoom = this.chatRooms.get(streamKey);
+
+		if (!chatRoom) {
+			logger.error("Chat room not found", { streamKey });
+			throw new ChatRoomNotFoundError(streamKey);
+		}
+
+		// Check if user has permission to update mode
+		if (!this.canUpdateSettings(updatedBy, chatRoom)) {
+			logger.error("Insufficient permissions to update chat mode", {
+				updatedBy,
+				streamKey,
+			});
+			throw new InsufficientPermissionsError("update chat mode");
+		}
+
+		try {
+			// Update mode settings
+			if (mode.slowMode !== undefined) {
+				chatRoom.slowMode = mode.slowMode;
+			}
+			if (mode.subscriberOnly !== undefined) {
+				chatRoom.subscriberOnly = mode.subscriberOnly;
+			}
+			if (mode.emotesOnly !== undefined) {
+				chatRoom.emotesOnly = mode.emotesOnly;
+			}
+
+			chatRoom.updatedAt = new Date();
+
+			// Update chat room
+			await this.updateChatRoom(chatRoom);
+
+			logger.info("Chat mode updated", { streamKey, mode, updatedBy });
+
+			this.emit("modeUpdated", { streamKey, mode, updatedBy });
+		} catch (error) {
+			logger.error("Failed to update chat mode", { streamKey, error });
+			throw new DatabaseOperationError("update chat mode", error);
+		}
+	}
+
+	async getChatRoom(streamKey: string): Promise<ChatRoom | null> {
+		return this.chatRooms.get(streamKey) || null;
 	}
 
 	// Helper methods
