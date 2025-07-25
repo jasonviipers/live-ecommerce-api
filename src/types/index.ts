@@ -776,6 +776,7 @@ export interface ChatMessage {
 		stickerUrl?: string;
 		mentions?: string[];
 		isHighlighted?: boolean;
+		emotes?: string[];
 	};
 	timestamp: Date;
 	isDeleted: boolean;
