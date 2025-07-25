@@ -21,6 +21,7 @@ export class ChatService extends EventEmitter {
 	private chatRooms: Map<string, ChatRoom> = new Map();
 	private userLastMessage: Map<string, Date> = new Map();
 	private messageCache: Map<string, ChatMessage[]> = new Map();
+	private cleanupIntervals: NodeJS.Timeout[] = [];
 	private readonly MAX_CACHED_MESSAGES = 100;
 	private readonly DEFAULT_SLOW_MODE = 0;
 	private readonly MAX_MESSAGE_LENGTH = 500;
@@ -803,21 +804,66 @@ export class ChatService extends EventEmitter {
 	}
 
 	private setupCleanupIntervals(): void {
-		// Clean up old messages every hour
-		setInterval(
+		const messageCleanupInterval = setInterval(
 			() => {
 				this.cleanupOldMessages();
 			},
 			60 * 60 * 1000,
 		);
 
-		// Clean up expired bans every 10 minutes
-		setInterval(
+		const banCleanupInterval = setInterval(
 			() => {
 				this.cleanupExpiredBans();
 			},
 			10 * 60 * 1000,
 		);
+
+		this.cleanupIntervals.push(messageCleanupInterval, banCleanupInterval);
+
+		logger.info("Cleanup intervals started", {
+			intervalCount: this.cleanupIntervals.length,
+		});
+	}
+
+	/**
+	 * Clear all cleanup intervals to prevent memory leaks
+	 * Should be called when the service is stopped or restarted
+	 */
+	public clearCleanupIntervals(): void {
+		this.cleanupIntervals.forEach((interval) => {
+			clearInterval(interval);
+		});
+		this.cleanupIntervals = [];
+
+		logger.info("All cleanup intervals cleared");
+	}
+
+	/**
+	 * Gracefully shutdown the chat service
+	 * Clears all intervals and performs cleanup
+	 */
+	public async shutdown(): Promise<void> {
+		try {
+			logger.info("Shutting down chat service...");
+
+			this.clearCleanupIntervals();
+
+			// Close all active chat rooms
+			const activeRooms = Array.from(this.chatRooms.keys());
+			for (const streamKey of activeRooms) {
+				await this.closeChatRoom(streamKey);
+			}
+
+			// Clear all caches
+			this.chatRooms.clear();
+			this.messageCache.clear();
+			this.userLastMessage.clear();
+
+			logger.info("Chat service shutdown completed");
+		} catch (error) {
+			logger.error("Error during chat service shutdown", error as Error);
+			throw error;
+		}
 	}
 
 	private async cleanupOldMessages(): Promise<void> {
@@ -900,6 +946,17 @@ export const getChatService = async (): Promise<ChatService> => {
 	}
 
 	return chatService;
+};
+
+/**
+ * Shutdown the chat service and clear the singleton instance
+ * Useful for testing or graceful application shutdown
+ */
+export const shutdownChatService = async (): Promise<void> => {
+	if (chatService) {
+		await chatService.shutdown();
+		chatService = null;
+	}
 };
 
 export default ChatService;

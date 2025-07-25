@@ -13,6 +13,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import MediaService from "./services/mediaService";
 import InternalService from "./services/InternalService";
 import { getMediaServerService } from "./services/mediaServerService";
+import { shutdownChatService } from "./services/chatService";
 
 // Database connections
 import {
@@ -139,8 +140,11 @@ const startServer = async () => {
 	}
 };
 
-const shutdownServer = async (signal: string) => {
+const gracefulShutdown = async (signal: string) => {
+	logger.info(`Received ${signal}. Starting graceful shutdown...`);
+
 	try {
+		await shutdownChatService();
 		await closeDatabase();
 		await closeRedis();
 		logger.info("✅ Graceful shutdown completed");
@@ -151,8 +155,8 @@ const shutdownServer = async (signal: string) => {
 	}
 };
 
-process.on("SIGTERM", () => shutdownServer("SIGTERM"));
-process.on("SIGINT", () => shutdownServer("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 startServer();
 export default app;
