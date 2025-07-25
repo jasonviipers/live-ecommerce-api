@@ -10,6 +10,10 @@ import {
 	updateChatModeSchema,
 	updateSettingsSchema,
 } from "@/utils/validation";
+import {
+	ChatRoomNotFoundError,
+	InsufficientPermissionsError,
+} from "@/utils/chatErrors";
 
 const chat = new Hono();
 
@@ -336,59 +340,43 @@ chat.patch(
 
 			const chatService = await getChatService();
 
-			// Get current chat room to update mode settings
-			const chatRoom = (chatService as any).chatRooms.get(streamKey);
-
-			if (!chatRoom) {
-				return c.json(
-					{
-						success: false,
-						error: "Chat room not found",
-					},
-					404,
-				);
-			}
-
-			// Check permissions
-			if (
-				chatRoom.streamerId !== updatedBy &&
-				!chatRoom.moderators.includes(updatedBy)
-			) {
-				return c.json(
-					{
-						success: false,
-						error: "Insufficient permissions",
-					},
-					403,
-				);
-			}
-
-			// Update mode settings
-			if (modeSettings.slowMode !== undefined) {
-				chatRoom.slowMode = modeSettings.slowMode;
-			}
-			if (modeSettings.subscriberOnly !== undefined) {
-				chatRoom.subscriberOnly = modeSettings.subscriberOnly;
-			}
-			if (modeSettings.emotesOnly !== undefined) {
-				chatRoom.emotesOnly = modeSettings.emotesOnly;
-			}
-
-			chatRoom.updatedAt = new Date();
-
-			// Update in database and cache
+			// Delegate all validation, permission checks, and updates to the service layer
 			await chatService.updateChatMode(streamKey, modeSettings, updatedBy);
+
+			// Get updated chat room to return current state
+			const updatedChatRoom = await chatService.getChatRoom(streamKey);
 
 			return c.json({
 				success: true,
 				message: "Chat mode updated successfully",
 				data: {
-					slowMode: chatRoom.slowMode,
-					subscriberOnly: chatRoom.subscriberOnly,
-					emotesOnly: chatRoom.emotesOnly,
+					slowMode: updatedChatRoom?.slowMode,
+					subscriberOnly: updatedChatRoom?.subscriberOnly,
+					emotesOnly: updatedChatRoom?.emotesOnly,
 				},
 			});
 		} catch (error) {
+			// Handle specific chat service errors
+			if (error instanceof ChatRoomNotFoundError) {
+				return c.json(
+					{
+						success: false,
+						error: error.message,
+					},
+					404,
+				);
+			}
+
+			if (error instanceof InsufficientPermissionsError) {
+				return c.json(
+					{
+						success: false,
+						error: error.message,
+					},
+					403,
+				);
+			}
+
 			logger.error("Failed to update chat mode", { error });
 			return c.json(
 				{
