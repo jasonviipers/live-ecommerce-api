@@ -158,5 +158,15 @@ const gracefulShutdown = async (signal: string) => {
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
+process.on('uncaughtException', async (error) => {
+	logger.error('Uncaught Exception', error);
+	await gracefulShutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+	logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+	await gracefulShutdown('unhandledRejection');
+});
+
 startServer();
 export default app;
