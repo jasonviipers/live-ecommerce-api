@@ -923,6 +923,10 @@ export class DonationService extends EventEmitter {
 			throw error;
 		}
 	}
+
+	async getActiveDonationGoals(): Promise<DonationGoal[]> {
+		return Array.from(this.activeDonationGoals.values());
+	}
 }
 
 let donationService: DonationService | null = null;

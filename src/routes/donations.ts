@@ -205,16 +205,17 @@ donations.get("/:streamKey/goals", optionalAuthMiddleware, async (c) => {
 	try {
 		const streamKey = c.req.param("streamKey");
 
-		const donationService = getDonationService();
-		const activeGoals = Array.from(
-			(donationService as any).activeDonationGoals.values(),
-		).filter((goal: any) => goal.streamKey === streamKey && goal.isActive);
+		const donationService = await getDonationService();
+		const activeGoals = await donationService.getActiveDonationGoals();
+		const streamGoals = activeGoals.filter(
+			(goal) => goal.streamKey === streamKey,
+		);
 
 		return c.json({
 			success: true,
 			data: {
-				goals: activeGoals,
-				count: activeGoals.length,
+				goals: streamGoals,
+				count: streamGoals.length,
 			},
 		});
 	} catch (error) {
@@ -241,8 +242,9 @@ donations.patch(
 			const userId = user.id;
 			const updates = c.req.valid("json");
 
-			const donationService = getDonationService();
-			const goal = (donationService as any).activeDonationGoals.get(goalId);
+			const donationService = await getDonationService();
+			const goals = await donationService.getActiveDonationGoals();
+			const goal = goals.find((goal) => goal.id === goalId);
 
 			if (!goal) {
 				return c.json(
@@ -304,7 +306,7 @@ donations.delete("/goals/:goalId", authMiddleware, async (c) => {
 		const user = c.get("user");
 		const userId = user.id;
 
-		const donationService = getDonationService();
+		const donationService = await getDonationService();
 		const goal = (donationService as any).activeDonationGoals.get(goalId);
 
 		if (!goal) {
