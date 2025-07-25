@@ -859,9 +859,9 @@ export class InternalService extends EventEmitter {
 					deliveryDuration:
 						order.shippedAt && order.deliveredAt
 							? Math.round(
-								(order.deliveredAt.getTime() - order.shippedAt.getTime()) /
-								(1000 * 60 * 60 * 24),
-							) // days
+									(order.deliveredAt.getTime() - order.shippedAt.getTime()) /
+										(1000 * 60 * 60 * 24),
+								) // days
 							: null,
 				},
 				order.totalAmount,
@@ -970,13 +970,13 @@ export class InternalService extends EventEmitter {
 			const indexData = {
 				name: productData.name,
 				slug: productData.slug,
-				description: productData.description || '',
-				short_description: productData.shortDescription || '',
+				description: productData.description || "",
+				short_description: productData.shortDescription || "",
 				price: productData.price.toString(),
 				vendor_id: productData.vendorId,
-				category_id: productData.categoryId || '',
-				tags: productData.tags ? productData.tags.join(',') : '',
-				is_active: productData.isActive ? '1' : '0',
+				category_id: productData.categoryId || "",
+				tags: productData.tags ? productData.tags.join(",") : "",
+				is_active: productData.isActive ? "1" : "0",
 			};
 			await redisClient.hSet(key, indexData);
 			logger.info("Product indexed for search in Redis", { productId });
