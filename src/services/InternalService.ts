@@ -16,6 +16,7 @@ import AnalyticsService from "./analyticsService";
 import OrderRepository from "@/repositories/order";
 import ProductRepository from "@/repositories/product";
 import { NotificationService } from "./notification";
+import { getChatService } from "./chatService";
 
 export interface ServiceEvent {
 	id: string;
@@ -732,10 +733,8 @@ export class InternalService extends EventEmitter {
 		try {
 			const { streamKey, streamerId } = event.data;
 
-			// TODO: Create chat room
-
-			// const chatService = getChatService();
-			// await chatService.createChatRoom(streamKey, streamerId);
+			const chatService = await getChatService();
+			await chatService.createChatRoom(streamKey, streamerId);
 
 			// Notify followers
 			await this.notifyFollowersOfStream(streamerId, streamKey);
@@ -753,10 +752,8 @@ export class InternalService extends EventEmitter {
 		try {
 			const { streamKey, streamerId, duration, viewerCount } = event.data;
 
-			// TODO: Close chat room
-
-			// const chatService = getChatService();
-			// await chatService.closeChatRoom(streamKey);
+			const chatService = await getChatService();
+			await chatService.closeChatRoom(streamKey);
 
 			// Process stream analytics
 			await this.processStreamAnalytics(

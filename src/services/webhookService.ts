@@ -5,6 +5,7 @@ import { WebhookDelivery, WebhookEndpoint, WebhookEvent } from "@/types";
 import logger from "@/config/logger";
 import { config } from "@/config";
 import { createId } from "@paralleldrive/cuid2";
+import { getDonationService } from "./donationService";
 
 export class WebhookService extends EventEmitter {
 	private webhookEndpoints: Map<string, WebhookEndpoint> = new Map();
@@ -304,9 +305,8 @@ export class WebhookService extends EventEmitter {
 			const metadata = paymentIntent.metadata;
 
 			if (metadata.type === "donation") {
-				// TODO: Handle donation completion
-				// const donationService = getDonationService();
-				// await donationService.completeDonation(paymentIntent.id);
+				const donationService = await getDonationService();
+				await donationService.completeDonation(paymentIntent.id);
 			} else if (metadata.type === "order") {
 				// Handle order payment completion
 				await this.handleOrderPaymentSuccess(metadata.orderId);
