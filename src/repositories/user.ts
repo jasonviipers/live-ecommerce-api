@@ -9,40 +9,36 @@ export class UserRepository {
 		const optCodeExpiresAt = new Date();
 		optCodeExpiresAt.setMinutes(optCodeExpiresAt.getMinutes() + 15); // Expires in 15 minutes
 		const passwordHash = await Bun.password.hash(data.password);
+		const sql = `
+            INSERT INTO users (email, password_hash, first_name, last_name, phone, role, opt_code, opt_code_expires_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING *
+        `;
+		const values = [
+			data.email,
+			passwordHash,
+			data.firstName,
+			data.lastName,
+			data.phone,
+			data.role || "customer",
+			optCode,
+			optCodeExpiresAt,
+		];
 
-		return await withTransaction(async (client) => {
-			const sql = `
-				INSERT INTO users (email, password_hash, first_name, last_name, phone, role, opt_code, opt_code_expires_at)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-				RETURNING *
-			`;
-			const values = [
-				data.email,
-				passwordHash,
-				data.firstName,
-				data.lastName,
-				data.phone,
-				data.role || "customer",
-				optCode,
-				optCodeExpiresAt,
-			];
-
-			const result = await client.query(sql, values);
-			const user = this.mapRowToUser(result.rows[0]);
-
-			const emailSent = await EmailService.sendOtpEmail({
+		const result = await query(sql, values);
+		const user = this.mapRowToUser(result.rows[0]);
+		try {
+			await EmailService.sendOtpEmail({
 				email: user.email,
 				firstName: user.firstName,
 				lastName: user.lastName,
 				optCode,
 			});
+		} catch (error) {
+			console.error("Failed to send OTP email:", error);
+		}
 
-			if (!emailSent) {
-				throw new Error("Failed to send OTP email");
-			}
-
-			return user;
-		});
+		return user;
 	}
 
 	static async findByOptCode(optCode: string): Promise<User | undefined> {

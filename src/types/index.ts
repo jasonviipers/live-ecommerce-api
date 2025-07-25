@@ -759,3 +759,63 @@ export interface OrderShippedEvent {
 	orderId: string;
 	trackingInfo: TrackingInfo;
 }
+
+export interface ChatMessage {
+	id: string;
+	streamKey: string;
+	userId: string;
+	username: string;
+	userAvatar?: string;
+	userRole: "viewer" | "moderator" | "streamer" | "admin";
+	message: string;
+	messageType: "text" | "emoji" | "sticker" | "system" | "donation";
+	metadata?: {
+		donationAmount?: number;
+		currency?: string;
+		productId?: string;
+		stickerUrl?: string;
+		mentions?: string[];
+		isHighlighted?: boolean;
+	};
+	timestamp: Date;
+	isDeleted: boolean;
+	deletedBy?: string;
+	deletedAt?: Date;
+}
+
+export interface ChatRoom {
+	streamKey: string;
+	streamerId: string;
+	isActive: boolean;
+	viewerCount: number;
+	messageCount: number;
+	moderators: string[];
+	bannedUsers: string[];
+	slowMode: number; // seconds between messages
+	subscriberOnly: boolean;
+	emotesOnly: boolean;
+	settings: {
+		maxMessageLength: number;
+		allowLinks: boolean;
+		allowEmotes: boolean;
+		allowStickers: boolean;
+		profanityFilter: boolean;
+	};
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+export interface ChatStats {
+	totalMessages: number;
+	activeUsers: number;
+	messagesPerMinute: number;
+	topChatters: Array<{
+		userId: string;
+		username: string;
+		messageCount: number;
+	}>;
+	popularEmotes: Array<{
+		emote: string;
+		count: number;
+	}>;
+}
