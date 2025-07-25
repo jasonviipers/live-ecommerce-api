@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
-import { join } from "path";
+import { join } from "node:path";
 import { initializeDatabase, query, closeDatabase } from "./connection";
-import { logger } from "../config/logger";
+import { logger } from "@/config/logger";
 
 interface Seed {
 	id: number;
@@ -27,7 +27,7 @@ const createSeedsTable = async (): Promise<void> => {
 // Get executed seeds
 const getExecutedSeeds = async (): Promise<string[]> => {
 	const result = await query("SELECT name FROM seeds ORDER BY id");
-	return result.rows.map((row: any) => row.name);
+	return result.rows.map((row: { name: string }) => row.name);
 };
 
 // Mark seed as executed
@@ -48,7 +48,7 @@ const loadSeeds = (): Seed[] => {
 			throw new Error(`Invalid seed filename: ${filename}`);
 		}
 
-		const [, idStr, name] = match;
+		const [, idStr, _name] = match;
 		const id = parseInt(idStr, 10);
 		const sql = readFileSync(join(seedsDir, filename), "utf-8");
 
@@ -104,22 +104,27 @@ const runSeeds = async (): Promise<void> => {
 				await markSeedExecuted(seed.name);
 
 				logger.info(`✅ Seed completed: ${seed.name}`);
-			} catch (error) {
-				logger.error(`❌ Seed failed: ${seed.name}`, error as Error);
+			} catch (error: unknown) {
+				logger.error(
+					`❌ Seed failed: ${seed.name}`,
+					error instanceof Error ? error : new Error(String(error)),
+				);
 				throw error;
 			}
 		}
 
 		logger.info("✅ All seeds completed successfully");
-	} catch (error) {
-		logger.error("❌ Seeding process failed", error as Error);
+	} catch (error: unknown) {
+		logger.error(
+			"❌ Seeding process failed",
+			error instanceof Error ? error : new Error(String(error)),
+		);
 		throw error;
 	} finally {
 		await closeDatabase();
 	}
 };
 
-// Reset seeds (remove all seed records and re-run)
 const resetSeeds = async (): Promise<void> => {
 	try {
 		logger.warn("🔄 Resetting seeds (this will re-run all seeds)...");
@@ -135,8 +140,11 @@ const resetSeeds = async (): Promise<void> => {
 		await runSeeds();
 
 		logger.info("✅ Seeds reset completed");
-	} catch (error) {
-		logger.error("❌ Seeds reset failed", error as Error);
+	} catch (error: unknown) {
+		logger.error(
+			"❌ Seeds reset failed",
+			error instanceof Error ? error : new Error(String(error)),
+		);
 		throw error;
 	}
 };
@@ -147,13 +155,15 @@ const main = async (): Promise<void> => {
 
 	switch (command) {
 		case "run":
-		case undefined:
+		case undefined: {
 			await runSeeds();
 			break;
-		case "reset":
+		}
+		case "reset": {
 			await resetSeeds();
 			break;
-		case "status":
+		}
+		case "status": {
 			await initializeDatabase();
 			await createSeedsTable();
 			const executed = await getExecutedSeeds();
@@ -170,10 +180,12 @@ const main = async (): Promise<void> => {
 
 			await closeDatabase();
 			break;
-		default:
+		}
+		default: {
 			logger.error(`Unknown command: ${command}`);
 			logger.info("Available commands: run, reset, status");
 			process.exit(1);
+		}
 	}
 };
 

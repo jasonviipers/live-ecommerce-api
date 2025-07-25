@@ -1,6 +1,6 @@
 import { config } from "@/config";
 import logger from "@/config/logger";
-import { Context } from "hono";
+import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
@@ -65,7 +65,7 @@ export const errorHandler = (
 	let statusCode: number = 500;
 	let message = "Internal Server Error";
 	let code = "INTERNAL_ERROR";
-	let details: unknown = undefined;
+	let details: unknown;
 
 	if (error instanceof HTTPException) {
 		statusCode = error.status;

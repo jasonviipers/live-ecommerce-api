@@ -20,7 +20,10 @@ import VendorRepository from "@/repositories/vendor";
 
 const productRoutes = new Hono();
 
-// Get all products (public)
+type Query = z.infer<typeof querySchema>;
+type ProductSortBy = Query["sortBy"];
+type SortOrder = Query["sortOrder"];
+
 productRoutes.get(
 	"/",
 	optionalAuthMiddleware,
@@ -38,8 +41,8 @@ productRoutes.get(
 				tags: query.tags,
 				priceMin: query.priceMin,
 				priceMax: query.priceMax,
-				sortBy: query.sortBy,
-				sortOrder: query.sortOrder,
+				sortBy: query.sortBy as ProductSortBy,
+				sortOrder: query.sortOrder as SortOrder,
 			});
 
 			return c.json({
@@ -59,7 +62,6 @@ productRoutes.get(
 	},
 );
 
-// Get featured products (public)
 productRoutes.get("/featured", async (c) => {
 	try {
 		const limit = parseInt(c.req.query("limit") || "10");
@@ -77,7 +79,6 @@ productRoutes.get("/featured", async (c) => {
 	}
 });
 
-// Search products (public)
 productRoutes.get(
 	"/search",
 	zValidator(
@@ -139,7 +140,6 @@ productRoutes.get(
 	},
 );
 
-// Create product (vendor/admin only)
 productRoutes.post(
 	"/",
 	authMiddleware,
@@ -191,7 +191,6 @@ productRoutes.post(
 	},
 );
 
-// Get single product (public)
 productRoutes.get("/:id", optionalAuthMiddleware, async (c) => {
 	try {
 		const id = c.req.param("id");
@@ -201,7 +200,6 @@ productRoutes.get("/:id", optionalAuthMiddleware, async (c) => {
 			throw createError.notFound("Product not found");
 		}
 
-		// Increment view count
 		await ProductRepository.incrementViewCount(id);
 
 		return c.json({
@@ -214,7 +212,6 @@ productRoutes.get("/:id", optionalAuthMiddleware, async (c) => {
 	}
 });
 
-// Update product (vendor owner/admin only)
 productRoutes.put(
 	"/:id",
 	authMiddleware,
@@ -263,7 +260,6 @@ productRoutes.put(
 	},
 );
 
-// Delete product (vendor owner/admin only)
 productRoutes.delete(
 	"/:id",
 	authMiddleware,
@@ -273,7 +269,6 @@ productRoutes.delete(
 			const user = c.get("user");
 			const id = c.req.param("id");
 
-			// Get existing product
 			const existingProduct = await ProductRepository.findById(id);
 			if (!existingProduct) {
 				throw createError.notFound("Product not found");
@@ -309,7 +304,6 @@ productRoutes.delete(
 	},
 );
 
-// Update product inventory (vendor owner/admin only)
 productRoutes.patch(
 	"/:id/inventory",
 	authMiddleware,
@@ -363,7 +357,6 @@ productRoutes.patch(
 	},
 );
 
-// Get low stock products (vendor/admin only)
 productRoutes.get(
 	"/inventory/low-stock",
 	authMiddleware,
@@ -386,7 +379,6 @@ productRoutes.get(
 	},
 );
 
-// Get vendor's products (vendor owner/admin only)
 productRoutes.get(
 	"/vendor/:vendorId",
 	authMiddleware,

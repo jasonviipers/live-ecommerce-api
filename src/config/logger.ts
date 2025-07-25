@@ -1,3 +1,4 @@
+import { existsSync, mkdirSync } from "node:fs";
 import * as winston from "winston";
 import "winston-daily-rotate-file";
 import { config } from "./index";
@@ -68,8 +69,6 @@ export const logger = winston.createLogger({
 	],
 });
 
-// Create logs directory if it doesn't exist
-import { existsSync, mkdirSync } from "fs";
 if (!existsSync("logs")) {
 	mkdirSync("logs");
 }
@@ -83,19 +82,19 @@ export const httpLogStream = {
 
 // Helper functions for structured logging
 export const loggers = {
-	auth: (message: string, meta?: any) =>
+	auth: (message: string, meta?: Record<string, unknown>) =>
 		logger.info(message, { type: "auth", ...meta }),
-	database: (message: string, meta?: any) =>
+	database: (message: string, meta?: Record<string, unknown>) =>
 		logger.info(message, { type: "database", ...meta }),
-	payment: (message: string, meta?: any) =>
+	payment: (message: string, meta?: Record<string, unknown>) =>
 		logger.info(message, { type: "payment", ...meta }),
-	streaming: (message: string, meta?: any) =>
+	streaming: (message: string, meta?: Record<string, unknown>) =>
 		logger.info(message, { type: "streaming", ...meta }),
-	upload: (message: string, meta?: any) =>
+	upload: (message: string, meta?: Record<string, unknown>) =>
 		logger.info(message, { type: "upload", ...meta }),
-	analytics: (message: string, meta?: any) =>
+	analytics: (message: string, meta?: Record<string, unknown>) =>
 		logger.info(message, { type: "analytics", ...meta }),
-	error: (message: string, error?: Error, meta?: any) => {
+	error: (message: string, error?: Error, meta?: Record<string, unknown>) => {
 		logger.error(message, {
 			type: "error",
 			error: error?.message,

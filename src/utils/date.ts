@@ -28,7 +28,7 @@ export function formatDate(
 		const date = new Date(dateInput);
 
 		// Validate the date using isNaN(date.getTime())
-		if (isNaN(date.getTime())) {
+		if (!isValidDate(date)) {
 			console.warn("Invalid date provided to formatDate:", dateInput);
 			return "Invalid Date";
 		}
@@ -101,7 +101,7 @@ export function formatLongDate(
 export function isValidDate(dateInput: string | Date | number): boolean {
 	try {
 		const date = new Date(dateInput);
-		return !isNaN(date.getTime());
+		return !Number.isNaN(date.getTime());
 	} catch {
 		return false;
 	}

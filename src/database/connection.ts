@@ -1,4 +1,4 @@
-import { Pool, PoolClient } from "pg";
+import { Pool, type PoolClient, type QueryResult } from "pg";
 import { config } from "../config";
 import { logger } from "../config/logger";
 
@@ -60,8 +60,10 @@ export const closeDatabase = async (): Promise<void> => {
 	}
 };
 
-// Query helper function
-export const query = async (text: string, params?: any[]): Promise<any> => {
+export const query = async (
+	text: string,
+	params?: unknown[],
+): Promise<QueryResult> => {
 	const db = getDatabase();
 	const start = Date.now();
 
@@ -87,7 +89,6 @@ export const query = async (text: string, params?: any[]): Promise<any> => {
 	}
 };
 
-// Transaction helper
 export const withTransaction = async <T>(
 	callback: (client: PoolClient) => Promise<T>,
 ): Promise<T> => {
@@ -107,7 +108,6 @@ export const withTransaction = async <T>(
 	}
 };
 
-// Health check
 export const checkDatabaseHealth = async (): Promise<boolean> => {
 	try {
 		const result = await query("SELECT 1 as health");

@@ -1,14 +1,23 @@
-import { Server as SocketIOServer, Socket } from "socket.io";
-import { Server as HTTPServer } from "http";
+import { Server as SocketIOServer, type Socket } from "socket.io";
+import type { Server as HTTPServer } from "node:http";
 import { logger } from "./logger";
-import { secret, toJWTPayload } from "../middleware/auth";
+import { secret, toJWTPayload } from "@/middleware/auth";
 import { jwtVerify } from "jose";
-import { UserRepository } from "../repositories/user";
-import { getRedisClient } from "../database/redis";
-import StreamRepository from "../repositories/stream";
-import { query } from "../database/connection";
+import { UserRepository } from "@/repositories/user";
+import { getRedisClient } from "@/database/redis";
+import StreamRepository from "@/repositories/stream";
+import { query } from "@/database/connection";
 import { createId } from "@paralleldrive/cuid2";
-import { Stream } from "../types";
+import type { Stream } from "@/types";
+
+declare module "socket.io" {
+	interface Socket {
+		userId?: string;
+		userRole?: string;
+		vendorId?: string;
+		isAuthenticated?: boolean;
+	}
+}
 
 export interface AuthenticatedSocket extends Socket {
 	userId?: string;
@@ -132,7 +141,7 @@ export class SocketManager {
 			if (!this.streamViewers.has(streamId)) {
 				this.streamViewers.set(streamId, new Set());
 			}
-			this.streamViewers.get(streamId)!.add(socket.id);
+			this.streamViewers.get(streamId)?.add(socket.id);
 
 			this.updateStreamViewerCount(streamId);
 
@@ -149,7 +158,7 @@ export class SocketManager {
 			socket.leave(`stream:${streamId}`);
 
 			if (this.streamViewers.has(streamId)) {
-				this.streamViewers.get(streamId)!.delete(socket.id);
+				this.streamViewers.get(streamId)?.delete(socket.id);
 				this.updateStreamViewerCount(streamId);
 			}
 
@@ -429,7 +438,17 @@ export class SocketManager {
 	}
 
 	// Public methods for external use
-	public async sendNotification(userId: string, notification: any) {
+	public async sendNotification(
+		userId: string,
+		notification: {
+			id: string;
+			type: "order" | "stream" | "product" | "vendor" | "system" | "payout";
+			title: string;
+			message: string;
+			data?: Record<string, unknown>;
+			createdAt: Date;
+		},
+	) {
 		const socketId = this.connectedUsers.get(userId);
 		if (socketId) {
 			this.io.to(socketId).emit("notification:new", notification);
@@ -439,7 +458,10 @@ export class SocketManager {
 		this.io.to(`user:${userId}`).emit("notification:new", notification);
 	}
 
-	public async sendOrderUpdate(orderId: string, update: any) {
+	public async sendOrderUpdate(
+		orderId: string,
+		update: Record<string, unknown>,
+	) {
 		this.io.to(`order:${orderId}`).emit("order:update", {
 			orderId,
 			...update,
@@ -447,14 +469,24 @@ export class SocketManager {
 		});
 	}
 
-	public async sendVendorNotification(vendorId: string, notification: any) {
+	public async sendVendorNotification(
+		vendorId: string,
+		notification: {
+			id?: string;
+			type: "order" | "stream" | "product" | "vendor" | "system" | "payout";
+			title: string;
+			message: string;
+			data?: any;
+			createdAt?: Date;
+		},
+	) {
 		this.io.to(`vendor:${vendorId}`).emit("vendor:notification", notification);
 	}
 
 	public async broadcastStreamEvent(
 		streamId: string,
 		event: string,
-		data: any,
+		data: Record<string, unknown>,
 	) {
 		this.io.to(`stream:${streamId}`).emit(event, {
 			streamId,

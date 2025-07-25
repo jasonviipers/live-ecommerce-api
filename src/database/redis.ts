@@ -1,4 +1,4 @@
-import { createClient, RedisClientType } from "redis";
+import { createClient, type RedisClientType } from "redis";
 import { config } from "../config";
 import { logger } from "../config/logger";
 
@@ -149,36 +149,30 @@ export const cache = {
 		}
 	},
 
-	// Get JSON value from cache
 	getJSON: async <T>(key: string): Promise<T | null> => {
 		const value = await cache.get(key);
 		return value ? JSON.parse(value) : null;
 	},
 
-	// Set JSON value in cache
-	setJSON: async (key: string, value: any, ttl?: number): Promise<void> => {
+	setJSON: async (key: string, value: unknown, ttl?: number): Promise<void> => {
 		await cache.set(key, JSON.stringify(value), ttl);
 	},
 
-	// Delete key from cache
 	del: async (key: string): Promise<void> => {
 		const client = getRedisClient();
 		await client.del(key);
 	},
 
-	// Check if key exists
 	exists: async (key: string): Promise<boolean> => {
 		const client = getRedisClient();
 		return (await client.exists(key)) === 1;
 	},
 
-	// Set expiration for key
 	expire: async (key: string, ttl: number): Promise<void> => {
 		const client = getRedisClient();
 		await client.expire(key, ttl);
 	},
 
-	// Get keys by pattern
 	keys: async (pattern: string): Promise<string[]> => {
 		const client = getRedisClient();
 		return await client.keys(pattern);
@@ -190,7 +184,6 @@ export const cache = {
 		return await client.incr(key);
 	},
 
-	// Increment counter with expiration
 	incrWithExpire: async (key: string, ttl: number): Promise<number> => {
 		const client = getRedisClient();
 		const value = await client.incr(key);
@@ -204,14 +197,16 @@ export const cache = {
 // Session helper functions
 export const session = {
 	// Get session data
-	get: async (sessionId: string): Promise<any | null> => {
+	get: async <T = Record<string, unknown>>(
+		sessionId: string,
+	): Promise<T | null> => {
 		return await cache.getJSON(`session:${sessionId}`);
 	},
 
 	// Set session data
 	set: async (
 		sessionId: string,
-		data: any,
+		data: Record<string, unknown>,
 		ttl: number = 3600,
 	): Promise<void> => {
 		await cache.setJSON(`session:${sessionId}`, data, ttl);
@@ -231,7 +226,7 @@ export const session = {
 // Pub/Sub helper functions
 export const pubsub = {
 	// Publish message
-	publish: async (channel: string, message: any): Promise<void> => {
+	publish: async (channel: string, message: string): Promise<void> => {
 		const publisher = getRedisPublisher();
 		await publisher.publish(channel, JSON.stringify(message));
 	},
@@ -239,7 +234,7 @@ export const pubsub = {
 	// Subscribe to channel
 	subscribe: async (
 		channel: string,
-		callback: (message: any) => void,
+		callback: (message: string) => void,
 	): Promise<void> => {
 		const subscriber = getRedisSubscriber();
 		await subscriber.subscribe(channel, (message) => {

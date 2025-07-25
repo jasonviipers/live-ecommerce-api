@@ -146,7 +146,7 @@ const querySchema = z.object({
 		.transform((val) => (val ? parseFloat(val) : undefined))
 		.optional(),
 	sortBy: z
-		.enum(["created_at", "price", "name", "view_count", "like_count", "title"])
+		.enum(["created_at", "price", "name", "view_count", "like_count"])
 		.default("created_at"),
 	sortOrder: z.enum(["asc", "desc"]).default("desc"),
 	isLive: z

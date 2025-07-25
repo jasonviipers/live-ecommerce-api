@@ -1,11 +1,11 @@
 import { query, withTransaction } from "@/database/connection";
 import { CreateOrderData, Order, OrderItem, UpdateOrderData } from "@/types";
-import { PoolClient } from "pg";
+import type { PoolClient } from "pg";
 
 export class OrderRepository {
 	static async create(data: CreateOrderData): Promise<Order> {
 		return withTransaction(async (client: PoolClient) => {
-			const orderNumber = await this.generateOrderNumber(client);
+			const orderNumber = await OrderRepository.generateOrderNumber(client);
 
 			// Calculate totals
 			const subtotal = data.items.reduce(
@@ -102,7 +102,7 @@ export class OrderRepository {
 			return null;
 		}
 
-		return this.mapRowToOrder(result.rows[0]);
+		return OrderRepository.mapRowToOrder(result.rows[0]);
 	}
 
 	static async findByOrderNumber(orderNumber: string): Promise<Order | null> {
@@ -113,7 +113,7 @@ export class OrderRepository {
 			return null;
 		}
 
-		return this.mapRowToOrder(result.rows[0]);
+		return OrderRepository.mapRowToOrder(result.rows[0]);
 	}
 
 	static async findAll(
@@ -130,7 +130,7 @@ export class OrderRepository {
 	): Promise<{ orders: Order[]; total: number; page: number; limit: number }> {
 		const offset = (page - 1) * limit;
 		let whereClause = "WHERE 1=1";
-		const values: any[] = [];
+		const values: (string | number | Date | boolean)[] = [];
 		let paramCount = 0;
 
 		if (filters.userId) {
@@ -231,7 +231,7 @@ export class OrderRepository {
 			return null;
 		}
 
-		return this.mapRowToOrder(result.rows[0]);
+		return OrderRepository.mapRowToOrder(result.rows[0]);
 	}
 
 	static async updateStatus(
