@@ -18,9 +18,9 @@ import {
 import { Filter } from "bad-words";
 
 export class ChatService extends EventEmitter {
-	private chatRooms: Map<string, ChatRoom> = new Map();
-	private userLastMessage: Map<string, Date> = new Map();
-	private messageCache: Map<string, ChatMessage[]> = new Map();
+	readonly chatRooms: Map<string, ChatRoom> = new Map();
+	readonly userLastMessage: Map<string, Date> = new Map();
+	readonly messageCache: Map<string, ChatMessage[]> = new Map();
 	private cleanupIntervals: NodeJS.Timeout[] = [];
 	private readonly MAX_CACHED_MESSAGES = 100;
 	private readonly DEFAULT_SLOW_MODE = 0;
