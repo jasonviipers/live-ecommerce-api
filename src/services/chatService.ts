@@ -15,6 +15,7 @@ import {
 	DatabaseOperationError,
 	ChatServiceInitializationError,
 } from "@/utils/chatErrors";
+import { Filter } from "bad-words";
 
 export class ChatService extends EventEmitter {
 	private chatRooms: Map<string, ChatRoom> = new Map();
@@ -23,10 +24,18 @@ export class ChatService extends EventEmitter {
 	private readonly MAX_CACHED_MESSAGES = 100;
 	private readonly DEFAULT_SLOW_MODE = 0;
 	private readonly MAX_MESSAGE_LENGTH = 500;
+	private readonly profanityFilter: Filter;
 
-	constructor() {
+	private constructor() {
 		super();
-		this.initializeService();
+		this.profanityFilter = new Filter();
+		this.profanityFilter.removeWords("hell");
+	}
+
+	static async create(): Promise<ChatService> {
+		const service = new ChatService();
+		await service.initializeService();
+		return service;
 	}
 
 	private async initializeService(): Promise<void> {
@@ -617,16 +626,7 @@ export class ChatService extends EventEmitter {
 	}
 
 	private filterProfanity(message: string): string {
-		// TODO: Simple profanity filter - in production, use a proper library
-		const profanityWords = ["badword1", "badword2"]; // Add actual words
-		let filtered = message;
-
-		profanityWords.forEach((word) => {
-			const regex = new RegExp(word, "gi");
-			filtered = filtered.replace(regex, "*".repeat(word.length));
-		});
-
-		return filtered;
+		return this.profanityFilter.clean(message);
 	}
 
 	private getUserRole(
@@ -894,9 +894,9 @@ export class ChatService extends EventEmitter {
 
 let chatService: ChatService | null = null;
 
-export const getChatService = (): ChatService => {
+export const getChatService = async (): Promise<ChatService> => {
 	if (!chatService) {
-		chatService = new ChatService();
+		chatService = await ChatService.create();
 	}
 
 	return chatService;
