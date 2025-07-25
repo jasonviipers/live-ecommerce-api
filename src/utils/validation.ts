@@ -298,16 +298,16 @@ const sendMessageSchema = z.object({
 });
 
 const deleteMessageSchema = z.object({
-	messageId: z.string(),
+	messageId: z.string().uuid("Invalid message ID"),
 });
 
 const banUserSchema = z.object({
-	userId: z.string(),
+	userId: z.string().uuid("Invalid user ID"),
 	duration: z.number().min(1).max(10080).optional(), // max 1 week in minutes
 });
 
 const addModeratorSchema = z.object({
-	userId: z.string(),
+	userId: z.string().uuid("Invalid user ID"),
 });
 
 const updateSettingsSchema = z.object({

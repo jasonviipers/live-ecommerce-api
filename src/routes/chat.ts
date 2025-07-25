@@ -16,7 +16,11 @@ const chat = new Hono();
 chat.get("/:streamKey/messages", optionalAuthMiddleware, async (c) => {
 	try {
 		const streamKey = c.req.param("streamKey");
-		const limit = parseInt(c.req.query("limit") || "50");
+		const limitParam = c.req.query("limit");
+		const limit = Math.min(
+			Math.max(parseInt(limitParam || "50") || 50, 1),
+			100,
+		);
 		const before = c.req.query("before");
 
 		const chatService = await getChatService();
@@ -373,7 +377,7 @@ chat.patch(
 			chatRoom.updatedAt = new Date();
 
 			// Update in database and cache
-			await (chatService as any).updateChatRoom(chatRoom);
+			await chatService.updateChatMode(streamKey, modeSettings, updatedBy);
 
 			return c.json({
 				success: true,
@@ -427,7 +431,7 @@ chat.get("/:streamKey/info", optionalAuthMiddleware, async (c) => {
 		const streamKey = c.req.param("streamKey");
 
 		const chatService = await getChatService();
-		const chatRoom = chatService.chatRooms.get(streamKey);
+		const chatRoom = await chatService.getChatRoom(streamKey);
 
 		if (!chatRoom) {
 			return c.json(

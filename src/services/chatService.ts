@@ -18,9 +18,9 @@ import {
 import { Filter } from "bad-words";
 
 export class ChatService extends EventEmitter {
-	readonly chatRooms: Map<string, ChatRoom> = new Map();
-	readonly userLastMessage: Map<string, Date> = new Map();
-	readonly messageCache: Map<string, ChatMessage[]> = new Map();
+	private readonly chatRooms: Map<string, ChatRoom> = new Map();
+	private readonly userLastMessage: Map<string, Date> = new Map();
+	private readonly messageCache: Map<string, ChatMessage[]> = new Map();
 	private cleanupIntervals: NodeJS.Timeout[] = [];
 	private readonly MAX_CACHED_MESSAGES = 100;
 	private readonly DEFAULT_SLOW_MODE = 0;
@@ -41,10 +41,8 @@ export class ChatService extends EventEmitter {
 
 	private async initializeService(): Promise<void> {
 		try {
-			// Load active chat rooms from database
 			await this.loadActiveChatRooms();
 
-			// Setup cleanup intervals
 			this.setupCleanupIntervals();
 
 			logger.info("Chat service initialized");
@@ -119,7 +117,6 @@ export class ChatService extends EventEmitter {
 			throw new ChatRoomNotFoundError(streamKey);
 		}
 
-		// Check if user is banned
 		const isBanned = await this.checkUserBanStatus(streamKey, userId);
 		if (isBanned) {
 			logger.error("User is banned from chat", { streamKey, userId });
@@ -209,7 +206,6 @@ export class ChatService extends EventEmitter {
 		}
 
 		try {
-			// Update message in cache
 			const messages = this.messageCache.get(streamKey) || [];
 			const messageIndex = messages.findIndex((m) => m.id === messageId);
 
@@ -229,7 +225,6 @@ export class ChatService extends EventEmitter {
 
 			if (result.rowCount === 0) {
 				logger.error("Message not found", { messageId, streamKey });
-				// throw new MessageNotFoundError(messageId);
 				return false;
 			}
 
