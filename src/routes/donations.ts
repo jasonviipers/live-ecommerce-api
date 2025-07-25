@@ -8,6 +8,10 @@ import {
 	updateGoalSchema,
 } from "@/utils/validation";
 import { getDonationService } from "@/services/donationService";
+import { DonationTier } from "@/types";
+import Stripe from "stripe";
+import { stripe } from "@/utils/utils";
+import { config } from "@/config";
 
 const donations = new Hono();
 
@@ -408,13 +412,13 @@ donations.get("/:streamKey/recent", optionalAuthMiddleware, async (c) => {
 // Get donation tiers info
 donations.get("/tiers", async (c) => {
 	try {
-		const donationService = getDonationService();
-		const tiers = (donationService as any).donationTiers;
+		const donationService = await getDonationService();
+		const tiers = await donationService.getDonationTiers();
 
 		return c.json({
 			success: true,
 			data: {
-				tiers: tiers.map((tier: any) => ({
+				tiers: tiers.map((tier: DonationTier) => ({
 					name: tier.name,
 					minAmount: tier.minAmount,
 					maxAmount: tier.maxAmount,
@@ -439,9 +443,57 @@ donations.get("/tiers", async (c) => {
 // Webhook endpoint for payment completion (called by Stripe)
 donations.post("/webhook/payment-completed", async (c) => {
 	try {
-		const { paymentIntentId } = await c.req.json();
+		const rawBody = await c.req.text();
+		const signature = c.req.header("stripe-signature");
+
+		if (!signature) {
+			logger.error("Missing Stripe signature header");
+			return c.json(
+				{
+					success: false,
+					error: "Missing Stripe signature",
+				},
+				400,
+			);
+		}
+
+		let event: Stripe.Event;
+		try {
+			// Verify webhook signature and construct event
+			event = stripe.webhooks.constructEvent(
+				rawBody,
+				signature,
+				config.stripe.webhookSecret,
+			);
+		} catch (err) {
+			logger.error("Stripe webhook signature verification failed", {
+				error: err instanceof Error ? err.message : "Unknown error",
+			});
+			return c.json(
+				{
+					success: false,
+					error: "Invalid signature",
+				},
+				400,
+			);
+		}
+		// Only process payment_intent.succeeded events
+		if (event.type !== "payment_intent.succeeded") {
+			logger.info("Ignoring non-payment_intent.succeeded event", {
+				eventType: event.type,
+			});
+			return c.json({
+				success: true,
+				message: "Event ignored",
+			});
+		}
+
+		// Extract payment intent from event
+		const paymentIntent = event.data.object as Stripe.PaymentIntent;
+		const paymentIntentId = paymentIntent.id;
 
 		if (!paymentIntentId) {
+			logger.error("Payment intent ID missing from webhook event");
 			return c.json(
 				{
 					success: false,
@@ -455,6 +507,7 @@ donations.post("/webhook/payment-completed", async (c) => {
 		const success = await donationService.completeDonation(paymentIntentId);
 
 		if (!success) {
+			logger.error("Failed to complete donation", { paymentIntentId });
 			return c.json(
 				{
 					success: false,
@@ -463,6 +516,11 @@ donations.post("/webhook/payment-completed", async (c) => {
 				400,
 			);
 		}
+
+		logger.info("Donation completed successfully via webhook", {
+			paymentIntentId,
+			eventId: event.id,
+		});
 
 		return c.json({
 			success: true,

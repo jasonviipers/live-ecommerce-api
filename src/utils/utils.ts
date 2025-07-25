@@ -1,4 +1,6 @@
+import { config } from "@/config";
 import { randomInt } from "node:crypto";
+import Stripe from "stripe";
 
 export const generateOtp = (length: number = 6) => {
 	if (!Number.isInteger(length) || length < 4 || length > 12) {
@@ -29,3 +31,7 @@ export function getTrackingUrl(
 
 	return carrierUrls[normalizedCarrier] || null;
 }
+
+export const stripe = new Stripe(config.stripe.secretKey, {
+	apiVersion: "2025-06-30.basil",
+});

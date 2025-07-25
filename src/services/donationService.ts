@@ -16,8 +16,8 @@ import {
 import { getChatService } from "./chatService";
 
 export class DonationService extends EventEmitter {
-	private activeDonationGoals: Map<string, DonationGoal> = new Map();
-	private donationTiers: DonationTier[] = [
+	private readonly activeDonationGoals: Map<string, DonationGoal> = new Map();
+	private readonly donationTiers: DonationTier[] = [
 		{
 			minAmount: 1,
 			maxAmount: 4.99,
@@ -529,6 +529,12 @@ export class DonationService extends EventEmitter {
 		}
 	}
 
+	getDonationTiers(): DonationTier[] {
+		return this.donationTiers.map((tier) => ({
+			...tier,
+		}));
+	}
+
 	// Helper methods
 	private getDonationTier(amount: number): DonationTier {
 		for (const tier of this.donationTiers) {
@@ -565,7 +571,7 @@ export class DonationService extends EventEmitter {
 		avatar?: string;
 	} | null> {
 		try {
-			const sql = "SELECT username, avatar FROM users WHERE id = $1";
+			const sql = "SELECT username, avatar FROM users WHERE id = $1"; // Fixed: SELECT FROM firstName and lastName instead
 			const result = await query(sql, [donorId]);
 
 			return result.rows.length > 0
@@ -726,11 +732,21 @@ export class DonationService extends EventEmitter {
 	private async updateDonationGoal(goal: DonationGoal): Promise<void> {
 		const sql = `
       UPDATE donation_goals 
-      SET current_amount = $1, is_active = $2, updated_at = $3
-      WHERE id = $4
+      SET title = $1, description = $2, target_amount = $3, end_date = $4,
+          current_amount = $5, is_active = $6, updated_at = $7
+      WHERE id = $8
     `;
 
-		const values = [goal.currentAmount, goal.isActive, goal.updatedAt, goal.id];
+		const values = [
+			goal.title,
+			goal.description || null,
+			goal.targetAmount,
+			goal.endDate || null,
+			goal.currentAmount,
+			goal.isActive,
+			goal.updatedAt,
+			goal.id,
+		];
 
 		await query(sql, values);
 

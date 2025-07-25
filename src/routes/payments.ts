@@ -19,6 +19,7 @@ import {
 } from "@/utils/validation";
 import PaymentService from "@/services/payment";
 import OrderRepository from "@/repositories/order";
+import { stripe } from "@/utils/utils";
 
 const payments = new Hono();
 
@@ -429,10 +430,6 @@ payments.post("/webhooks/stripe", async (c) => {
 		if (!signature) {
 			throw createError.badRequest("Missing Stripe signature");
 		}
-
-		const stripe = new Stripe(config.stripe.secretKey, {
-			apiVersion: "2025-06-30.basil",
-		});
 
 		// Verify webhook signature
 		const event = stripe.webhooks.constructEvent(
