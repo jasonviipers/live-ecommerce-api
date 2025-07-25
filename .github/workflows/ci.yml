@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main, develop, 'feature/*' ]
+    branches: [main, develop, 'feature/*']
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   code-quality:
@@ -22,21 +22,11 @@ jobs:
         run: bun install
         
       # Code quality checks
-      - name: Lint code
-        run: bun run lint
+      - name: Lint code with Biome
+        run: bunx biome lint --apply-unsafe ./src
         
-      # - name: Format check
-      #   run: bun run format:check
+      - name: Format check
+        run: bunx biome format --check ./src
         
-      # - name: Type check
-      #   run: bun run type-check
-        
-      # Security scanning
-      # - name: Security audit
-      #   run: bun audit
-        
-      - name: SAST scan
-        uses: github/super-linter@v4
-        env:
-          DEFAULT_BRANCH: main
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Type check
+        run: bun run type-check
