@@ -40,6 +40,8 @@ import videoRoutes from "./routes/videos";
 import paymentRoutes from "./routes/payments";
 import uploadRoutes from "./routes/uploads";
 import notificationRoutes from "./routes/notifications";
+import chatRoutes from "./routes/chat";
+import donationRoutes from "./routes/donations";
 
 const app = new Hono();
 
@@ -96,6 +98,8 @@ app.route("/api/payments", paymentRoutes);
 app.route("/api/analytics", analyticsRoutes);
 app.route("/api/uploads", uploadRoutes);
 app.route("/api/notifications", notificationRoutes);
+app.route("/api/chat", chatRoutes);
+app.route("/api/donations", donationRoutes);
 
 // 404 handler
 app.notFound((c) => {

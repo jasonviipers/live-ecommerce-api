@@ -71,7 +71,7 @@ donations.get("/:streamKey/stats", optionalAuthMiddleware, async (c) => {
 		const period =
 			(c.req.query("period") as "today" | "week" | "month" | "all") || "all";
 
-		const donationService = getDonationService();
+		const donationService = await getDonationService();
 		const stats = await donationService.getDonationStats(streamKey, period);
 
 		return c.json({
@@ -95,7 +95,7 @@ donations.get("/:streamKey/alerts", authMiddleware, async (c) => {
 	try {
 		const streamKey = c.req.param("streamKey");
 
-		const donationService = getDonationService();
+		const donationService = await getDonationService();
 		const alerts = await donationService.getPendingAlerts(streamKey);
 
 		return c.json({
@@ -122,7 +122,7 @@ donations.patch("/alerts/:alertId/shown", authMiddleware, async (c) => {
 	try {
 		const alertId = c.req.param("alertId");
 
-		const donationService = getDonationService();
+		const donationService = await getDonationService();
 		const success = await donationService.markAlertAsShown(alertId);
 
 		if (!success) {
@@ -353,7 +353,7 @@ donations.get("/:streamKey/leaderboard", optionalAuthMiddleware, async (c) => {
 			(c.req.query("period") as "today" | "week" | "month" | "all") || "month";
 		const limit = parseInt(c.req.query("limit") || "10");
 
-		const donationService = getDonationService();
+		const donationService = await getDonationService();
 		const stats = await donationService.getDonationStats(streamKey, period);
 
 		return c.json({
@@ -383,7 +383,7 @@ donations.get("/:streamKey/recent", optionalAuthMiddleware, async (c) => {
 		const streamKey = c.req.param("streamKey");
 		const limit = parseInt(c.req.query("limit") || "20");
 
-		const donationService = getDonationService();
+		const donationService = await getDonationService();
 		const stats = await donationService.getDonationStats(streamKey, "all");
 
 		return c.json({
@@ -451,7 +451,7 @@ donations.post("/webhook/payment-completed", async (c) => {
 			);
 		}
 
-		const donationService = getDonationService();
+		const donationService = await getDonationService();
 		const success = await donationService.completeDonation(paymentIntentId);
 
 		if (!success) {

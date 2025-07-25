@@ -5,91 +5,15 @@ import PaymentService from "./payment";
 import { createId } from "@paralleldrive/cuid2";
 import { config } from "@/config";
 import { QueryResult } from "pg";
-
-export interface Donation {
-	id: string;
-	streamKey: string;
-	streamerId: string;
-	donorId: string;
-	donorName: string;
-	donorAvatar?: string;
-	amount: number;
-	currency: string;
-	message?: string;
-	isAnonymous: boolean;
-	isHighlighted: boolean;
-	highlightDuration: number; // seconds
-	paymentIntentId: string;
-	status: "pending" | "completed" | "failed" | "refunded";
-	processedAt?: Date;
-	refundedAt?: Date;
-	createdAt: Date;
-	updatedAt: Date;
-}
-export interface TopDonorRow {
-	donor_id: string;
-	donor_name: string;
-	total_amount: string;
-	donation_count: string;
-}
-export interface DonationGoal {
-	id: string;
-	streamKey: string;
-	streamerId: string;
-	title: string;
-	description?: string;
-	targetAmount: number;
-	currentAmount: number;
-	currency: string;
-	isActive: boolean;
-	startDate: Date;
-	endDate?: Date;
-	createdAt: Date;
-	updatedAt: Date;
-}
-
-export interface DonationAlert {
-	id: string;
-	streamKey: string;
-	donationId: string;
-	type: "new_donation" | "goal_reached" | "milestone";
-	title: string;
-	message: string;
-	amount?: number;
-	currency?: string;
-	duration: number; // seconds
-	isShown: boolean;
-	shownAt?: Date;
-	createdAt: Date;
-}
-
-export interface DonationStats {
-	totalDonations: number;
-	totalAmount: number;
-	currency: string;
-	averageDonation: number;
-	topDonation: number;
-	donationsToday: number;
-	amountToday: number;
-	topDonors: Array<{
-		donorId: string;
-		donorName: string;
-		totalAmount: number;
-		donationCount: number;
-	}>;
-	recentDonations: Donation[];
-}
-
-export interface DonationTier {
-	minAmount: number;
-	maxAmount?: number;
-	name: string;
-	color: string;
-	highlightDuration: number;
-	soundAlert?: string;
-	animationEffect?: string;
-	benefits?: string[];
-}
+import {
+	Donation,
+	DonationAlert,
+	DonationGoal,
+	DonationStats,
+	DonationTier,
+	TopDonorRow,
+} from "@/types";
+import { getChatService } from "./chatService";
 
 export class DonationService extends EventEmitter {
 	private activeDonationGoals: Map<string, DonationGoal> = new Map();
@@ -140,9 +64,14 @@ export class DonationService extends EventEmitter {
 		},
 	];
 
-	constructor() {
+	private constructor() {
 		super();
-		this.initializeService();
+	}
+
+	static async create() {
+		const instance = new DonationService();
+		await instance.initializeService();
+		return instance;
 	}
 
 	private async initializeService(): Promise<void> {
@@ -265,19 +194,18 @@ export class DonationService extends EventEmitter {
 
 			// Send to chat if message exists
 			if (donation.message) {
-				// TODO: Implement the chat service
-				// const chatService = getChatService();
-				// await chatService.sendMessage(
-				//   donation.streamKey,
-				//   donation.donorId,
-				//   donation.message,
-				//   'donation',
-				//   {
-				//     donationAmount: donation.amount,
-				//     currency: donation.currency,
-				//     isHighlighted: donation.isHighlighted,
-				//   }
-				// );
+				const chatService = await getChatService();
+				await chatService.sendMessage(
+					donation.streamKey,
+					donation.donorId,
+					donation.message,
+					"donation",
+					{
+						donationAmount: donation.amount,
+						currency: donation.currency,
+						isHighlighted: donation.isHighlighted,
+					},
+				);
 			}
 
 			await this.createDonationAlert(donation);
@@ -945,12 +873,11 @@ export class DonationService extends EventEmitter {
 	}
 }
 
-// Create singleton instance
 let donationService: DonationService | null = null;
 
-export const getDonationService = (): DonationService => {
+export const getDonationService = async (): Promise<DonationService> => {
 	if (!donationService) {
-		donationService = new DonationService();
+		donationService = await DonationService.create();
 	}
 
 	return donationService;
