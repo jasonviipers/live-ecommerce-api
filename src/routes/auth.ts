@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import {
 	authMiddleware,
 	generateTokens,
+	secret,
 	verifyRefreshToken,
 } from "@/middleware/auth";
 import { authRateLimiter } from "@/middleware/rateLimiter";
@@ -21,6 +22,8 @@ import {
 } from "@/utils/validation";
 import EmailService from "@/services/emailService";
 import { generateOtp } from "@/utils/utils";
+import { getRedisClient } from "@/database/redis";
+import { jwtVerify } from "jose";
 
 const auth = new Hono();
 
@@ -238,10 +241,32 @@ auth.post("/verify-email", zValidator("json", verifyEmailSchema), async (c) => {
 auth.post("/logout", authMiddleware, async (c) => {
 	try {
 		const user = c.get("user");
+		const authHeader = c.req.header("authorization");
+		const token = authHeader?.startsWith("Bearer ")
+			? authHeader.slice(7)
+			: authHeader;
 
-		// TODO: Implement token blacklisting in Redis
-		// await tokenService.revokeRefreshToken(user.id);
-
+		if (token) {
+			const redisClient = getRedisClient();
+			try {
+				const { payload } = await jwtVerify(token, secret);
+				const exp = payload.exp;
+				if (exp) {
+					const currentTime = Math.floor(Date.now() / 1000);
+					const ttl = exp - currentTime;
+					if (ttl > 0) {
+						await redisClient.setEx(`blacklisted_token:${token}`, ttl, "true");
+						logger.info("Token blacklisted successfully", {
+							userId: user.id,
+							tokenExp: exp,
+							ttl,
+						});
+					}
+				}
+			} catch (jwtError) {
+				logger.warn("Invalid token during logout", { userId: user.id });
+			}
+		}
 		logger.info("User logged out successfully", { userId: user.id });
 
 		return c.json({

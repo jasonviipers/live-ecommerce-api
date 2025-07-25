@@ -21,6 +21,7 @@ export class ChatService extends EventEmitter {
 	private readonly chatRooms: Map<string, ChatRoom> = new Map();
 	private readonly userLastMessage: Map<string, Date> = new Map();
 	private readonly messageCache: Map<string, ChatMessage[]> = new Map();
+	private readonly emoteUsage: Map<string, Map<string, number>> = new Map();
 	private cleanupIntervals: NodeJS.Timeout[] = [];
 	private readonly MAX_CACHED_MESSAGES = 100;
 	private readonly DEFAULT_SLOW_MODE = 0;
@@ -117,37 +118,40 @@ export class ChatService extends EventEmitter {
 			throw new ChatRoomNotFoundError(streamKey);
 		}
 
-		const isBanned = await this.checkUserBanStatus(streamKey, userId);
-		if (isBanned) {
-			logger.error("User is banned from chat", { streamKey, userId });
+		// Check if user is banned
+		if (chatRoom.bannedUsers.includes(userId)) {
+			logger.error("User is banned from chat", { userId, streamKey });
 			throw new UserBannedError(userId, streamKey);
 		}
 
 		// Check slow mode
-		if (chatRoom.slowMode > 0) {
-			const lastMessage = this.userLastMessage.get(`${streamKey}:${userId}`);
-			if (lastMessage) {
-				const timeSinceLastMessage =
-					(Date.now() - lastMessage.getTime()) / 1000;
-				if (timeSinceLastMessage < chatRoom.slowMode) {
-					const remainingTime = chatRoom.slowMode - timeSinceLastMessage;
-					logger.error("Slow mode active", {
-						streamKey,
-						userId,
-						remainingTime,
-					});
-					throw new SlowModeError(remainingTime);
-				}
-			}
+		const lastMessageTime = this.userLastMessage.get(`${streamKey}:${userId}`);
+		if (
+			lastMessageTime &&
+			Date.now() - lastMessageTime.getTime() < chatRoom.slowMode * 1000
+		) {
+			throw new MessageValidationError(
+				`Slow mode active. Please wait ${chatRoom.slowMode} seconds between messages`,
+			);
 		}
 
-		const validatedMessage = await this.validateMessage(messageText, chatRoom);
-
-		const userInfo = await this.getUserInfo(userId);
-
 		try {
+			const userInfo = await this.getUserInfo(userId);
+			const validatedMessage = await this.validateMessage(
+				messageText,
+				chatRoom,
+			);
+
+			// Parse emotes from the message
+			const emotes = this.parseEmotes(validatedMessage, messageType);
+
+			// Track emote usage
+			if (emotes.length > 0) {
+				this.trackEmoteUsage(streamKey, emotes);
+			}
+
 			const message: ChatMessage = {
-				id: `msg_${createId()}`,
+				id: createId(),
 				streamKey,
 				userId,
 				username: userInfo.username,
@@ -155,7 +159,10 @@ export class ChatService extends EventEmitter {
 				userRole: this.getUserRole(userId, chatRoom),
 				message: validatedMessage,
 				messageType,
-				metadata,
+				metadata: {
+					...metadata,
+					emotes: emotes.length > 0 ? emotes : undefined,
+				},
 				timestamp: new Date(),
 				isDeleted: false,
 			};
@@ -172,13 +179,20 @@ export class ChatService extends EventEmitter {
 			logger.info("Message sent", {
 				streamKey,
 				userId,
-				messageId: message.id,
 				messageType,
+				emotesCount: emotes.length,
 			});
 
 			this.emit("messageSent", message);
+
 			return message;
 		} catch (error) {
+			if (
+				error instanceof MessageValidationError ||
+				error instanceof UserNotFoundError
+			) {
+				throw error;
+			}
 			logger.error("Failed to send message", { streamKey, userId, error });
 			throw new DatabaseOperationError("send message", error);
 		}
@@ -505,45 +519,40 @@ export class ChatService extends EventEmitter {
 		}
 
 		try {
-			// Get message count from last hour
+			// Get active users (users who sent messages in the last hour)
 			const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+			const activeUsersResult = await query(
+				`SELECT COUNT(DISTINCT user_id) as active_users 
+         FROM chat_messages 
+         WHERE stream_key = $1 AND timestamp > $2 AND is_deleted = false`,
+				[streamKey, oneHourAgo],
+			);
 
-			const messageCountSql = `
-        SELECT COUNT(*) as count
-        FROM chat_messages 
-        WHERE stream_key = $1 AND timestamp > $2 AND is_deleted = false
-      `;
-			const messageCountResult = await query(messageCountSql, [
-				streamKey,
-				oneHourAgo,
-			]);
-			const messagesLastHour = parseInt(messageCountResult.rows[0].count);
+			const activeUsers = parseInt(activeUsersResult.rows[0].active_users);
 
-			// Get active users
-			const activeUsersSql = `
-        SELECT COUNT(DISTINCT user_id) as count
-        FROM chat_messages 
-        WHERE stream_key = $1 AND timestamp > $2 AND is_deleted = false
-      `;
-			const activeUsersResult = await query(activeUsersSql, [
-				streamKey,
-				oneHourAgo,
-			]);
-			const activeUsers = parseInt(activeUsersResult.rows[0].count);
+			// Get messages in the last hour for rate calculation
+			const messagesLastHourResult = await query(
+				`SELECT COUNT(*) as message_count 
+         FROM chat_messages 
+         WHERE stream_key = $1 AND timestamp > $2 AND is_deleted = false`,
+				[streamKey, oneHourAgo],
+			);
+
+			const messagesLastHour = parseInt(
+				messagesLastHourResult.rows[0].message_count,
+			);
 
 			// Get top chatters
-			const topChattersSql = `
-        SELECT user_id, username, COUNT(*) as message_count
-        FROM chat_messages 
-        WHERE stream_key = $1 AND timestamp > $2 AND is_deleted = false
-        GROUP BY user_id, username
-        ORDER BY message_count DESC
-        LIMIT 10
-      `;
-			const topChattersResult = await query(topChattersSql, [
-				streamKey,
-				oneHourAgo,
-			]);
+			const topChattersResult = await query(
+				`SELECT user_id, username, COUNT(*) as message_count
+         FROM chat_messages 
+         WHERE stream_key = $1 AND timestamp > $2 AND is_deleted = false
+         GROUP BY user_id, username
+         ORDER BY message_count DESC
+         LIMIT 10`,
+				[streamKey, oneHourAgo],
+			);
+
 			const topChatters = topChattersResult.rows.map(
 				(row: {
 					user_id: string;
@@ -556,12 +565,15 @@ export class ChatService extends EventEmitter {
 				}),
 			);
 
+			// Get popular emotes
+			const popularEmotes = this.getPopularEmotes(streamKey);
+
 			return {
 				totalMessages: chatRoom.messageCount,
 				activeUsers,
 				messagesPerMinute: Math.round(messagesLastHour / 60),
 				topChatters,
-				popularEmotes: [], //TODO: Would need to implement emote tracking
+				popularEmotes,
 			};
 		} catch (error) {
 			logger.error("Failed to get chat stats", { streamKey, error });
@@ -849,12 +861,16 @@ export class ChatService extends EventEmitter {
 			for (const row of result.rows) {
 				const chatRoom = this.mapRowToChatRoom(row);
 				this.chatRooms.set(chatRoom.streamKey, chatRoom);
-				this.messageCache.set(chatRoom.streamKey, []);
+
+				// Initialize emote tracking for active rooms
+				if (!this.emoteUsage.has(chatRoom.streamKey)) {
+					this.emoteUsage.set(chatRoom.streamKey, new Map());
+				}
 			}
 
-			logger.info("Loaded active chat rooms", { count: result.rows.length });
+			logger.info(`Loaded ${result.rows.length} active chat rooms`);
 		} catch (error) {
-			logger.error("Failed to load active chat rooms", error as Error);
+			logger.error("Failed to load active chat rooms", { error });
 			throw new DatabaseOperationError("load active chat rooms", error);
 		}
 	}
@@ -991,6 +1007,88 @@ export class ChatService extends EventEmitter {
 			deletedBy: row.deleted_by,
 			deletedAt: row.deleted_at,
 		};
+	}
+
+	private parseEmotes(
+		message: string,
+		messageType: ChatMessage["messageType"],
+	): string[] {
+		const emotes: string[] = [];
+
+		// Handle emoji message type
+		if (messageType === "emoji") {
+			// For emoji type messages, the entire message is considered an emote
+			emotes.push(message.trim());
+			return emotes;
+		}
+
+		// Parse emotes from text messages
+		// Common emote patterns: :emote_name:, <:emote_name:id>, custom patterns
+		const emotePatterns = [
+			// Discord-style emotes: <:name:id> or <a:name:id>
+			/<a?:([^:]+):\d+>/g,
+			// Standard emotes: :name:
+			/:([a-zA-Z0-9_+-]+):/g,
+			// Unicode emoji (basic detection)
+			/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu,
+		];
+
+		for (const pattern of emotePatterns) {
+			let match;
+			while ((match = pattern.exec(message)) !== null) {
+				// For named emotes, use the name (group 1), for unicode use the full match
+				const emote = match[1] || match[0];
+				if (emote && emote.length > 0) {
+					emotes.push(emote);
+				}
+			}
+		}
+
+		return emotes;
+	}
+
+	private trackEmoteUsage(streamKey: string, emotes: string[]): void {
+		if (!this.emoteUsage.has(streamKey)) {
+			this.emoteUsage.set(streamKey, new Map());
+		}
+
+		const streamEmotes = this.emoteUsage.get(streamKey)!;
+
+		for (const emote of emotes) {
+			const currentCount = streamEmotes.get(emote) || 0;
+			streamEmotes.set(emote, currentCount + 1);
+		}
+	}
+
+	private getPopularEmotes(
+		streamKey: string,
+		limit: number = 10,
+	): Array<{
+		emote: string;
+		count: number;
+	}> {
+		const streamEmotes = this.emoteUsage.get(streamKey);
+
+		if (!streamEmotes || streamEmotes.size === 0) {
+			return [];
+		}
+
+		// Convert to array and sort by usage count
+		const emotesArray = Array.from(streamEmotes.entries())
+			.map(([emote, count]) => ({ emote, count }))
+			.sort((a, b) => b.count - a.count)
+			.slice(0, limit);
+
+		return emotesArray;
+	}
+
+	// Clean up emote data for inactive rooms
+	private cleanupEmoteData(): void {
+		for (const [streamKey, chatRoom] of this.chatRooms) {
+			if (!chatRoom.isActive) {
+				this.emoteUsage.delete(streamKey);
+			}
+		}
 	}
 }
 
