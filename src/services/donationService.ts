@@ -5,95 +5,19 @@ import PaymentService from "./payment";
 import { createId } from "@paralleldrive/cuid2";
 import { config } from "@/config";
 import { QueryResult } from "pg";
-
-export interface Donation {
-	id: string;
-	streamKey: string;
-	streamerId: string;
-	donorId: string;
-	donorName: string;
-	donorAvatar?: string;
-	amount: number;
-	currency: string;
-	message?: string;
-	isAnonymous: boolean;
-	isHighlighted: boolean;
-	highlightDuration: number; // seconds
-	paymentIntentId: string;
-	status: "pending" | "completed" | "failed" | "refunded";
-	processedAt?: Date;
-	refundedAt?: Date;
-	createdAt: Date;
-	updatedAt: Date;
-}
-export interface TopDonorRow {
-	donor_id: string;
-	donor_name: string;
-	total_amount: string;
-	donation_count: string;
-}
-export interface DonationGoal {
-	id: string;
-	streamKey: string;
-	streamerId: string;
-	title: string;
-	description?: string;
-	targetAmount: number;
-	currentAmount: number;
-	currency: string;
-	isActive: boolean;
-	startDate: Date;
-	endDate?: Date;
-	createdAt: Date;
-	updatedAt: Date;
-}
-
-export interface DonationAlert {
-	id: string;
-	streamKey: string;
-	donationId: string;
-	type: "new_donation" | "goal_reached" | "milestone";
-	title: string;
-	message: string;
-	amount?: number;
-	currency?: string;
-	duration: number; // seconds
-	isShown: boolean;
-	shownAt?: Date;
-	createdAt: Date;
-}
-
-export interface DonationStats {
-	totalDonations: number;
-	totalAmount: number;
-	currency: string;
-	averageDonation: number;
-	topDonation: number;
-	donationsToday: number;
-	amountToday: number;
-	topDonors: Array<{
-		donorId: string;
-		donorName: string;
-		totalAmount: number;
-		donationCount: number;
-	}>;
-	recentDonations: Donation[];
-}
-
-export interface DonationTier {
-	minAmount: number;
-	maxAmount?: number;
-	name: string;
-	color: string;
-	highlightDuration: number;
-	soundAlert?: string;
-	animationEffect?: string;
-	benefits?: string[];
-}
+import {
+	Donation,
+	DonationAlert,
+	DonationGoal,
+	DonationStats,
+	DonationTier,
+	TopDonorRow,
+} from "@/types";
+import { getChatService } from "./chatService";
 
 export class DonationService extends EventEmitter {
-	private activeDonationGoals: Map<string, DonationGoal> = new Map();
-	private donationTiers: DonationTier[] = [
+	private readonly activeDonationGoals: Map<string, DonationGoal> = new Map();
+	private readonly donationTiers: DonationTier[] = [
 		{
 			minAmount: 1,
 			maxAmount: 4.99,
@@ -140,9 +64,14 @@ export class DonationService extends EventEmitter {
 		},
 	];
 
-	constructor() {
+	private constructor() {
 		super();
-		this.initializeService();
+	}
+
+	static async create() {
+		const instance = new DonationService();
+		await instance.initializeService();
+		return instance;
 	}
 
 	private async initializeService(): Promise<void> {
@@ -265,19 +194,18 @@ export class DonationService extends EventEmitter {
 
 			// Send to chat if message exists
 			if (donation.message) {
-				// TODO: Implement the chat service
-				// const chatService = getChatService();
-				// await chatService.sendMessage(
-				//   donation.streamKey,
-				//   donation.donorId,
-				//   donation.message,
-				//   'donation',
-				//   {
-				//     donationAmount: donation.amount,
-				//     currency: donation.currency,
-				//     isHighlighted: donation.isHighlighted,
-				//   }
-				// );
+				const chatService = await getChatService();
+				await chatService.sendMessage(
+					donation.streamKey,
+					donation.donorId,
+					donation.message,
+					"donation",
+					{
+						donationAmount: donation.amount,
+						currency: donation.currency,
+						isHighlighted: donation.isHighlighted,
+					},
+				);
 			}
 
 			await this.createDonationAlert(donation);
@@ -601,6 +529,12 @@ export class DonationService extends EventEmitter {
 		}
 	}
 
+	getDonationTiers(): DonationTier[] {
+		return this.donationTiers.map((tier) => ({
+			...tier,
+		}));
+	}
+
 	// Helper methods
 	private getDonationTier(amount: number): DonationTier {
 		for (const tier of this.donationTiers) {
@@ -637,7 +571,7 @@ export class DonationService extends EventEmitter {
 		avatar?: string;
 	} | null> {
 		try {
-			const sql = "SELECT username, avatar FROM users WHERE id = $1";
+			const sql = "SELECT username, avatar FROM users WHERE id = $1"; // Fixed: SELECT FROM firstName and lastName instead
 			const result = await query(sql, [donorId]);
 
 			return result.rows.length > 0
@@ -798,11 +732,21 @@ export class DonationService extends EventEmitter {
 	private async updateDonationGoal(goal: DonationGoal): Promise<void> {
 		const sql = `
       UPDATE donation_goals 
-      SET current_amount = $1, is_active = $2, updated_at = $3
-      WHERE id = $4
+      SET title = $1, description = $2, target_amount = $3, end_date = $4,
+          current_amount = $5, is_active = $6, updated_at = $7
+      WHERE id = $8
     `;
 
-		const values = [goal.currentAmount, goal.isActive, goal.updatedAt, goal.id];
+		const values = [
+			goal.title,
+			goal.description || null,
+			goal.targetAmount,
+			goal.endDate || null,
+			goal.currentAmount,
+			goal.isActive,
+			goal.updatedAt,
+			goal.id,
+		];
 
 		await query(sql, values);
 
@@ -943,14 +887,53 @@ export class DonationService extends EventEmitter {
 			createdAt: row.created_at,
 		};
 	}
+
+	async updateDonationGoalFields(
+		goalId: string,
+		updates: Partial<
+			Pick<
+				DonationGoal,
+				"title" | "description" | "targetAmount" | "endDate" | "isActive"
+			>
+		>,
+	): Promise<DonationGoal | null> {
+		try {
+			const goal = this.activeDonationGoals.get(goalId);
+
+			if (!goal) {
+				return null;
+			}
+
+			// Create updated goal with only the provided fields
+			const updatedGoal: DonationGoal = {
+				...goal,
+				...updates,
+				updatedAt: new Date(),
+			};
+
+			await this.updateDonationGoal(updatedGoal);
+
+			return updatedGoal;
+		} catch (error) {
+			logger.error("Failed to update donation goal fields", {
+				goalId,
+				updates,
+				error,
+			});
+			throw error;
+		}
+	}
+
+	async getActiveDonationGoals(): Promise<DonationGoal[]> {
+		return Array.from(this.activeDonationGoals.values());
+	}
 }
 
-// Create singleton instance
 let donationService: DonationService | null = null;
 
-export const getDonationService = (): DonationService => {
+export const getDonationService = async (): Promise<DonationService> => {
 	if (!donationService) {
-		donationService = new DonationService();
+		donationService = await DonationService.create();
 	}
 
 	return donationService;

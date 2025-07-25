@@ -819,3 +819,88 @@ export interface ChatStats {
 		count: number;
 	}>;
 }
+
+export interface Donation {
+	id: string;
+	streamKey: string;
+	streamerId: string;
+	donorId: string;
+	donorName: string;
+	donorAvatar?: string;
+	amount: number;
+	currency: string;
+	message?: string;
+	isAnonymous: boolean;
+	isHighlighted: boolean;
+	highlightDuration: number; // seconds
+	paymentIntentId: string;
+	status: "pending" | "completed" | "failed" | "refunded";
+	processedAt?: Date;
+	refundedAt?: Date;
+	createdAt: Date;
+	updatedAt: Date;
+}
+export interface TopDonorRow {
+	donor_id: string;
+	donor_name: string;
+	total_amount: string;
+	donation_count: string;
+}
+export interface DonationGoal {
+	id: string;
+	streamKey: string;
+	streamerId: string;
+	title: string;
+	description?: string;
+	targetAmount: number;
+	currentAmount: number;
+	currency: string;
+	isActive: boolean;
+	startDate: Date;
+	endDate?: Date;
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+export interface DonationAlert {
+	id: string;
+	streamKey: string;
+	donationId: string;
+	type: "new_donation" | "goal_reached" | "milestone";
+	title: string;
+	message: string;
+	amount?: number;
+	currency?: string;
+	duration: number; // seconds
+	isShown: boolean;
+	shownAt?: Date;
+	createdAt: Date;
+}
+
+export interface DonationStats {
+	totalDonations: number;
+	totalAmount: number;
+	currency: string;
+	averageDonation: number;
+	topDonation: number;
+	donationsToday: number;
+	amountToday: number;
+	topDonors: Array<{
+		donorId: string;
+		donorName: string;
+		totalAmount: number;
+		donationCount: number;
+	}>;
+	recentDonations: Donation[];
+}
+
+export interface DonationTier {
+	minAmount: number;
+	maxAmount?: number;
+	name: string;
+	color: string;
+	highlightDuration: number;
+	soundAlert?: string;
+	animationEffect?: string;
+	benefits?: string[];
+}

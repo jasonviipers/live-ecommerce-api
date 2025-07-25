@@ -324,6 +324,29 @@ const updateChatModeSchema = z.object({
 	emotesOnly: z.boolean().optional(),
 });
 
+const createDonationSchema = z.object({
+	amount: z.number().min(1).max(10000),
+	currency: z.string().length(3).optional().default("USD"),
+	message: z.string().max(500).optional(),
+	isAnonymous: z.boolean().optional().default(false),
+});
+
+const createGoalSchema = z.object({
+	title: z.string().min(1).max(255),
+	description: z.string().max(1000).optional(),
+	targetAmount: z.number().min(1).max(100000),
+	currency: z.string().length(3).optional().default("USD"),
+	endDate: z.string().datetime().optional(),
+});
+
+const updateGoalSchema = z.object({
+	title: z.string().min(1).max(255).optional(),
+	description: z.string().max(1000).optional(),
+	targetAmount: z.number().min(1).max(100000).optional(),
+	endDate: z.string().datetime().optional(),
+	isActive: z.boolean().optional(),
+});
+
 export {
 	registerSchema,
 	loginSchema,
@@ -359,4 +382,7 @@ export {
 	addModeratorSchema,
 	updateSettingsSchema,
 	updateChatModeSchema,
+	createDonationSchema,
+	createGoalSchema,
+	updateGoalSchema,
 };
