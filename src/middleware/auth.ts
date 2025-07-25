@@ -65,6 +65,17 @@ export const authMiddleware = async (c: Context, next: Next) => {
 			: authHeader;
 		if (!token) throw createError.unauthorized("Token is required");
 
+		// Check if token is blacklisted
+		const { getRedisClient } = await import("@/database/redis");
+		const redisClient = getRedisClient();
+		const isBlacklisted = await redisClient.exists(
+			`blacklisted_token:${token}`,
+		);
+
+		if (isBlacklisted) {
+			throw createError.unauthorized("Token has been revoked");
+		}
+
 		const { payload } = await jwtVerify(token, secret);
 		const decoded = toJWTPayload(payload);
 
@@ -117,6 +128,18 @@ export const optionalAuthMiddleware = async (c: Context, next: Next) => {
 			? authHeader.slice(7)
 			: authHeader;
 		if (!token) {
+			await next();
+			return;
+		}
+
+		// Check if token is blacklisted
+		const { getRedisClient } = await import("@/database/redis");
+		const redisClient = getRedisClient();
+		const isBlacklisted = await redisClient.exists(
+			`blacklisted_token:${token}`,
+		);
+
+		if (isBlacklisted) {
 			await next();
 			return;
 		}
