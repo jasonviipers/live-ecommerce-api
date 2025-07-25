@@ -8,6 +8,7 @@ import EmailService from "./emailService";
 import {
 	Order,
 	OrderShippedEvent,
+	Product,
 	ServiceHealth,
 	ServiceRegistry,
 } from "@/types";
@@ -189,7 +190,6 @@ export class InternalService extends EventEmitter {
 			return config.server.publicUrl;
 		}
 
-		// In production, use the hostname environment variable if available
 		if (config.server.isProduction && process.env.HOSTNAME) {
 			return `http://${process.env.HOSTNAME}:${config.server.port}`;
 		}
@@ -209,7 +209,6 @@ export class InternalService extends EventEmitter {
 		}, 30000); // Every 30 seconds
 	}
 
-	// Send heartbeat
 	private async sendHeartbeat(): Promise<void> {
 		try {
 			const health = await this.getServiceHealth();
@@ -244,11 +243,7 @@ export class InternalService extends EventEmitter {
 	private async getServiceHealth(): Promise<ServiceHealth> {
 		try {
 			const startTime = process.hrtime();
-
-			// Check database health
 			const dbHealth = await this.checkDatabaseHealth();
-
-			// Check Redis health
 			const redisHealth = await this.checkRedisHealth();
 
 			// Calculate response time
@@ -306,7 +301,6 @@ export class InternalService extends EventEmitter {
 		}
 	}
 
-	// Check database health
 	private async checkDatabaseHealth(): Promise<boolean> {
 		try {
 			await query("SELECT 1");
@@ -316,7 +310,6 @@ export class InternalService extends EventEmitter {
 		}
 	}
 
-	// Check Redis health
 	private async checkRedisHealth(): Promise<boolean> {
 		try {
 			const redisClient = getRedisClient();
@@ -964,15 +957,40 @@ export class InternalService extends EventEmitter {
 
 	private async indexProductForSearch(
 		productId: string,
-		productData: any,
+		productData: Product,
 	): Promise<void> {
-		//TODO: Implementation would index product for search
-		logger.info("Product indexed for search", { productId });
+		if (!productId || !productData) {
+			logger.error("Invalid product data", { productId, productData });
+			return;
+		}
+
+		try {
+			const redisClient = getRedisClient();
+			const key = `product:${productId}`;
+			const indexData = {
+				name: productData.name,
+				slug: productData.slug,
+				description: productData.description || "",
+				short_description: productData.shortDescription || "",
+				price: productData.price.toString(),
+				vendor_id: productData.vendorId,
+				category_id: productData.categoryId || "",
+				tags: productData.tags ? productData.tags.join(",") : "",
+				is_active: productData.isActive ? "1" : "0",
+			};
+			await redisClient.hSet(key, indexData);
+			logger.info("Product indexed for search in Redis", { productId });
+		} catch (error) {
+			logger.error("Failed to index product for search", {
+				productId,
+				error,
+			});
+		}
 	}
 
 	private async trackProductCreated(
 		productId: string,
-		productData: any,
+		productData: Product,
 	): Promise<void> {
 		//TODO: Implementation would track product created in analytics
 		logger.info("Product created tracked", { productId });
@@ -1453,7 +1471,7 @@ export class InternalService extends EventEmitter {
 		eventCategory: string,
 		eventAction: string,
 		eventLabel: string,
-		properties: Record<string, any>,
+		properties: Record<string, unknown>,
 		eventValue?: number,
 	): Promise<void> {
 		try {
