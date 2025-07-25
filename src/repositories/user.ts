@@ -1,4 +1,4 @@
-import { query } from "@/database/connection";
+import { query, withTransaction } from "@/database/connection";
 import EmailService from "@/services/emailService";
 import type { CreateUserData, UpdateUserData, User } from "@/types";
 import { generateOtp } from "@/utils/utils";
