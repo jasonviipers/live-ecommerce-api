@@ -1,5 +1,5 @@
-import { Context, Next } from "hono";
-import { SignJWT, jwtVerify, JWTPayload as JoseJWTPayload } from "jose";
+import type { Context, Next } from "hono";
+import { SignJWT, jwtVerify, type JWTPayload as JoseJWTPayload } from "jose";
 import { createError } from "./errorHandler";
 import { UserRepository } from "@/repositories/user";
 import VendorRepository from "@/repositories/vendor";
@@ -148,7 +148,7 @@ export const optionalAuthMiddleware = async (c: Context, next: Next) => {
 		const decoded = toJWTPayload(payload);
 
 		const userData = await UserRepository.findById(decoded.userId);
-		if (userData && userData.isActive) {
+		if (userData?.isActive) {
 			let vendorId: string | undefined;
 			if (userData.role === "vendor") {
 				const vendor = await VendorRepository.findByUserId(userData.id);

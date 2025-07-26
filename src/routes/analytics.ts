@@ -7,15 +7,19 @@ import {
 	requireVendorOrAdmin,
 	requireAdmin,
 } from "../middleware/auth";
-import { createError } from "../middleware/errorHandler";
-import { logger } from "../config/logger";
+import { createError } from "@/middleware/errorHandler";
+import { logger } from "@/config/logger";
 import {
 	dateRangeSchema,
 	trackEventSchema,
 	vendorAnalyticsSchema,
 } from "@/utils/validation";
 import AnalyticsService from "@/services/analyticsService";
-import { AnalyticsMetrics, RealTimeMetrics, VendorAnalytics } from "@/types";
+import type {
+	AnalyticsMetrics,
+	RealTimeMetrics,
+	VendorAnalytics,
+} from "@/types";
 import StreamRepository from "@/repositories/stream";
 import ProductRepository from "@/repositories/product";
 
@@ -388,7 +392,7 @@ analyticsRoutes.get(
 			const dateTo = query.dateTo ? new Date(query.dateTo) : undefined;
 
 			// Get different analytics based on user role
-			let dashboardData: IDashboardData = {};
+			const dashboardData: IDashboardData = {};
 
 			if (user.role === "admin" && !vendorId) {
 				// Admin dashboard - general metrics

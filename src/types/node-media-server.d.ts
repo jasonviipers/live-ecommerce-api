@@ -13,7 +13,11 @@ declare module "node-media-server" {
 				| "prePlay"
 				| "postPlay"
 				| "donePlay",
-			listener: (id: string, StreamPath: string, args: any) => void,
+			listener: (
+				id: string,
+				StreamPath: string,
+				args: Record<string, unknown>,
+			) => void,
 		): this;
 
 		getSession(id: string): Session | undefined;

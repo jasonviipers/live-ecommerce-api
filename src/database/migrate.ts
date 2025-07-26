@@ -1,7 +1,7 @@
-import { readFileSync, readdirSync } from "fs";
-import { join } from "path";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { initializeDatabase, query, closeDatabase } from "./connection";
-import { logger } from "../config/logger";
+import { logger } from "@/config/logger";
 
 interface Migration {
 	id: number;
@@ -10,7 +10,6 @@ interface Migration {
 	sql: string;
 }
 
-// Create migrations table if it doesn't exist
 const createMigrationsTable = async (): Promise<void> => {
 	const sql = `
     CREATE TABLE IF NOT EXISTS migrations (
@@ -24,18 +23,15 @@ const createMigrationsTable = async (): Promise<void> => {
 	logger.info("Migrations table created or already exists");
 };
 
-// Get executed migrations
 const getExecutedMigrations = async (): Promise<string[]> => {
 	const result = await query("SELECT name FROM migrations ORDER BY id");
-	return result.rows.map((row: any) => row.name);
+	return result.rows.map((row: { name: string }) => row.name);
 };
 
-// Mark migration as executed
 const markMigrationExecuted = async (name: string): Promise<void> => {
 	await query("INSERT INTO migrations (name) VALUES ($1)", [name]);
 };
 
-// Load migration files
 const loadMigrations = (): Migration[] => {
 	const migrationsDir = join(__dirname, "migrations");
 	const files = readdirSync(migrationsDir)
@@ -48,7 +44,7 @@ const loadMigrations = (): Migration[] => {
 			throw new Error(`Invalid migration filename: ${filename}`);
 		}
 
-		const [, idStr, name] = match;
+		const [, idStr, _name] = match;
 		const id = parseInt(idStr, 10);
 		const sql = readFileSync(join(migrationsDir, filename), "utf-8");
 
@@ -61,7 +57,6 @@ const loadMigrations = (): Migration[] => {
 	});
 };
 
-// Run migrations
 const runMigrations = async (): Promise<void> => {
 	try {
 		logger.info("🚀 Starting database migrations...");
@@ -119,7 +114,6 @@ const runMigrations = async (): Promise<void> => {
 	}
 };
 
-// Rollback last migration (basic implementation)
 const rollbackMigration = async (): Promise<void> => {
 	try {
 		logger.info("🔄 Rolling back last migration...");
@@ -154,7 +148,6 @@ const rollbackMigration = async (): Promise<void> => {
 	}
 };
 
-// Reset database (drop all tables and re-run migrations)
 const resetDatabase = async (): Promise<void> => {
 	try {
 		logger.warn("🔥 Resetting database (this will drop all tables)...");
@@ -188,16 +181,19 @@ const main = async (): Promise<void> => {
 
 	switch (command) {
 		case "up":
-		case undefined:
+		case undefined: {
 			await runMigrations();
 			break;
-		case "rollback":
+		}
+		case "rollback": {
 			await rollbackMigration();
 			break;
-		case "reset":
+		}
+		case "reset": {
 			await resetDatabase();
 			break;
-		case "status":
+		}
+		case "status": {
 			await initializeDatabase();
 			await createMigrationsTable();
 			const executed = await getExecutedMigrations();
@@ -214,10 +210,12 @@ const main = async (): Promise<void> => {
 
 			await closeDatabase();
 			break;
-		default:
+		}
+		default: {
 			logger.error(`Unknown command: ${command}`);
 			logger.info("Available commands: up, rollback, reset, status");
 			process.exit(1);
+		}
 	}
 };
 

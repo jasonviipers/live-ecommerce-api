@@ -10,7 +10,10 @@
 		"test:watch": "bun test --watch",
 		"db:migrate": "bun run src/database/migrate.ts",
 		"db:seed": "bun run src/database/seed.ts",
-		"lint": " bunx biome format --write"
+		"lint": "bunx biome lint ./src",
+		"format": "bunx biome format ./src --write",
+		"format:check": "bunx biome format ./src --write=false",
+		"type-check": "tsc --noEmit"
 	},
 	"keywords": [
 		"live-streaming",
@@ -24,12 +27,12 @@
 		"bun"
 	],
 	"dependencies": {
-		"@aws-sdk/client-s3": "^3.848.0",
-		"@aws-sdk/lib-storage": "^3.848.0",
-		"@aws-sdk/s3-request-presigner": "^3.848.0",
+		"@aws-sdk/client-s3": "^3.850.0",
+		"@aws-sdk/lib-storage": "^3.850.0",
+		"@aws-sdk/s3-request-presigner": "^3.850.0",
 		"@hono/zod-validator": "^0.7.2",
 		"@paralleldrive/cuid2": "^2.2.2",
-		"@simplewebauthn/server": "^13.1.1",
+		"@simplewebauthn/server": "^13.1.2",
 		"aws-sdk": "^2.1692.0",
 		"bad-words": "^4.0.0",
 		"compression": "latest",
@@ -44,12 +47,12 @@
 		"nodemailer": "latest",
 		"pg": "latest",
 		"redis": "latest",
-		"sharp": "^0.33.2",
+		"sharp": "^0.33.5",
 		"socket.io": "latest",
 		"stripe": "latest",
 		"winston": "latest",
 		"winston-daily-rotate-file": "^5.0.0",
-		"zod": "^3.25.67"
+		"zod": "^3.25.76"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "latest",
@@ -61,6 +64,6 @@
 		"@types/node-media-server": "^2.3.7",
 		"@types/nodemailer": "^6.4.17",
 		"@types/pg": "^8.15.4",
-		"typescript": "^5.9.0-beta"
+		"typescript": "^5.9.0-dev.20250726"
 	}
 }

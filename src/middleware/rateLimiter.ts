@@ -1,7 +1,7 @@
-import { Context, Next } from "hono";
-import { config } from "../config";
+import type { Context, Next } from "hono";
+import { config } from "@/config";
 import { createError } from "./errorHandler";
-import { logger } from "../config/logger";
+import { logger } from "@/config/logger";
 
 interface RateLimitStore {
 	[key: string]: {
