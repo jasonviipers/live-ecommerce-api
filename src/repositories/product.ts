@@ -325,7 +325,7 @@ export class ProductRepository {
     `;
 
 		const result = await query(sql, [limit]);
-		return result.rows.map(this.mapRowToProduct);
+		return result.rows.map(ProductRepository.mapRowToProduct);
 	}
 
 	// Search products

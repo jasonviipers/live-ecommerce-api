@@ -476,7 +476,7 @@ export class SocketManager {
 			type: "order" | "stream" | "product" | "vendor" | "system" | "payout";
 			title: string;
 			message: string;
-			data?: any;
+			data?: Record<string, unknown>;
 			createdAt?: Date;
 		},
 	) {

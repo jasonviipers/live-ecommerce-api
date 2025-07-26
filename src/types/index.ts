@@ -15,6 +15,23 @@ export interface User {
 	updatedAt: Date;
 }
 
+export interface UserRow {
+	id: string;
+	email: string;
+	password_hash: string;
+	first_name: string;
+	last_name: string;
+	phone?: string;
+	avatar_url?: string;
+	role: "admin" | "vendor" | "customer";
+	is_active: boolean;
+	email_verified: boolean;
+	email_verified_at?: Date;
+	last_login_at?: Date;
+	created_at: Date;
+	updated_at: Date;
+}
+
 export interface CreateUserData {
 	email: string;
 	password: string;
@@ -95,8 +112,8 @@ export interface Order {
 	discountAmount: number;
 	totalAmount: number;
 	currency: string;
-	shippingAddress?: any;
-	billingAddress?: any;
+	shippingAddress?: Record<string, string>;
+	billingAddress?: Record<string, string>;
 	notes?: string;
 	shippedAt?: Date;
 	deliveredAt?: Date;
@@ -127,8 +144,8 @@ export interface CreateOrderData {
 		quantity: number;
 		price: number;
 	}[];
-	shippingAddress?: any;
-	billingAddress?: any;
+	shippingAddress?: Record<string, string>;
+	billingAddress?: Record<string, string>;
 	notes?: string;
 	taxAmount?: number;
 	shippingAmount?: number;
@@ -159,7 +176,7 @@ export interface Product {
 	inventoryQuantity: number;
 	lowStockThreshold: number;
 	weight?: number;
-	dimensions?: any;
+	dimensions?: Record<string, number>;
 	images: string[];
 	tags: string[];
 	metaTitle?: string;
@@ -188,7 +205,7 @@ export interface CreateProductData {
 	inventoryQuantity?: number;
 	lowStockThreshold?: number;
 	weight?: number;
-	dimensions?: any;
+	dimensions?: Record<string, number>;
 	images?: string[];
 	tags?: string[];
 	metaTitle?: string;
@@ -209,7 +226,7 @@ export interface UpdateProductData {
 	inventoryQuantity?: number;
 	lowStockThreshold?: number;
 	weight?: number;
-	dimensions?: any;
+	dimensions?: Record<string, number>;
 	images?: string[];
 	tags?: string[];
 	metaTitle?: string;
@@ -240,7 +257,7 @@ export interface Stream {
 	isRecorded: boolean;
 	recordingUrl?: string;
 	tags: string[];
-	metadata?: any;
+	metadata?: Record<string, number>;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -253,7 +270,7 @@ export interface CreateStreamData {
 	scheduledAt?: Date;
 	isRecorded?: boolean;
 	tags?: string[];
-	metadata?: any;
+	metadata?: Record<string, number>;
 }
 
 export interface UpdateStreamData {
@@ -264,7 +281,7 @@ export interface UpdateStreamData {
 	status?: Stream["status"];
 	isRecorded?: boolean;
 	tags?: string[];
-	metadata?: any;
+	metadata?: Record<string, number>;
 }
 
 export interface Vendor {
@@ -276,7 +293,7 @@ export interface Vendor {
 	logoUrl?: string;
 	bannerUrl?: string;
 	websiteUrl?: string;
-	address?: any;
+	address?: Record<string, string>;
 	taxId?: string;
 	commissionRate: number;
 	isVerified: boolean;
@@ -297,7 +314,7 @@ export interface CreateVendorData {
 	logoUrl?: string;
 	bannerUrl?: string;
 	websiteUrl?: string;
-	address?: any;
+	address?: Record<string, string>;
 	taxId?: string;
 }
 
@@ -308,7 +325,7 @@ export interface UpdateVendorData {
 	logoUrl?: string;
 	bannerUrl?: string;
 	websiteUrl?: string;
-	address?: any;
+	address?: Record<string, string>;
 	taxId?: string;
 	commissionRate?: number;
 	isVerified?: boolean;
@@ -333,7 +350,7 @@ export interface Video {
 	shareCount: number;
 	commentCount: number;
 	tags: string[];
-	metadata?: any;
+	metadata?: Record<string, number>;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -350,7 +367,7 @@ export interface CreateVideoData {
 	format: string;
 	isPublic?: boolean;
 	tags?: string[];
-	metadata?: any;
+	metadata?: Record<string, number>;
 }
 
 export interface UpdateVideoData {
@@ -360,7 +377,7 @@ export interface UpdateVideoData {
 	status?: Video["status"];
 	isPublic?: boolean;
 	tags?: string[];
-	metadata?: any;
+	metadata?: Record<string, number>;
 }
 
 export interface Payment {
@@ -381,7 +398,7 @@ export interface Payment {
 		| "refunded"
 		| "partially_refunded";
 	paymentMethod: string;
-	metadata?: any;
+	metadata?: Record<string, number>;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -394,7 +411,7 @@ export interface Payout {
 	currency: string;
 	status: "pending" | "in_transit" | "paid" | "failed" | "canceled";
 	description?: string;
-	metadata?: any;
+	metadata?: Record<string, number>;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -404,7 +421,7 @@ export interface CreatePaymentIntentData {
 	amount: number;
 	currency?: string;
 	paymentMethodTypes?: string[];
-	metadata?: any;
+	metadata?: Record<string, number>;
 }
 
 export interface CreatePayoutData {
@@ -412,7 +429,7 @@ export interface CreatePayoutData {
 	amount: number;
 	currency?: string;
 	description?: string;
-	metadata?: any;
+	metadata?: Record<string, number>;
 }
 
 export interface Notification {
@@ -421,7 +438,7 @@ export interface Notification {
 	type: "order" | "stream" | "product" | "vendor" | "system" | "payout";
 	title: string;
 	message: string;
-	data?: any;
+	data?: Record<string, number>;
 	isRead: boolean;
 	createdAt: Date;
 	readAt?: Date;
@@ -432,7 +449,7 @@ export interface CreateNotificationData {
 	type: Notification["type"];
 	title: string;
 	message: string;
-	data?: any;
+	data?: Record<string, number>;
 }
 
 export interface MediaFile {
@@ -445,7 +462,7 @@ export interface MediaFile {
 	url: string;
 	r2Key?: string;
 	thumbnailUrl?: string;
-	metadata?: any;
+	metadata?: Record<string, number>;
 	status: "uploading" | "processing" | "ready" | "failed";
 	createdAt: Date;
 	updatedAt: Date;
@@ -472,7 +489,7 @@ export interface ProcessingResult {
 	success: boolean;
 	processedUrl?: string;
 	thumbnailUrl?: string;
-	metadata?: any;
+	metadata?: Record<string, number>;
 	error?: string;
 }
 
@@ -485,7 +502,7 @@ export interface AnalyticsEvent {
 	eventAction: string;
 	eventLabel?: string;
 	eventValue?: number;
-	properties?: any;
+	properties?: Record<string, number>;
 	timestamp: Date;
 	ipAddress?: string;
 	userAgent?: string;
@@ -501,7 +518,7 @@ export interface TrackEventData {
 	eventAction: string;
 	eventLabel?: string;
 	eventValue?: number;
-	properties?: any;
+	properties?: Record<string, number>;
 	ipAddress?: string;
 	userAgent?: string;
 	referrer?: string;
@@ -574,7 +591,7 @@ export interface WebhookEvent {
 	id: string;
 	type: string;
 	source: "internal" | "stripe" | "cloudflare" | "external";
-	data: any;
+	data: Record<string, number>;
 	timestamp: Date;
 	signature?: string;
 	processed: boolean;
@@ -904,4 +921,40 @@ export interface DonationTier {
 	soundAlert?: string;
 	animationEffect?: string;
 	benefits?: string[];
+}
+
+export interface OrderRow {
+	id: string;
+	order_number: string;
+	user_id: string;
+	vendor_id: string;
+	status: string;
+	payment_status: string;
+	subtotal: string;
+	tax_amount: string;
+	shipping_amount: string;
+	discount_amount: string;
+	total_amount: string;
+	currency: string;
+	shipping_address: string;
+	billing_address: string;
+	notes: string | null;
+	shipped_at: Date | null;
+	delivered_at: Date | null;
+	created_at: Date;
+	updated_at: Date;
+}
+
+export interface OrderItemRow {
+	id: string;
+	order_id: string;
+	product_id: string;
+	variant_id: string | null;
+	product_name: string;
+	variant_name: string | null;
+	sku: string;
+	quantity: string;
+	price: string;
+	total: string;
+	created_at: Date;
 }
