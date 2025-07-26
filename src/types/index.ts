@@ -176,7 +176,7 @@ export interface Product {
 	inventoryQuantity: number;
 	lowStockThreshold: number;
 	weight?: number;
-	dimensions?: Record<string, number>;
+	dimensions?: Record<string, unknown>;
 	images: string[];
 	tags: string[];
 	metaTitle?: string;
@@ -205,7 +205,7 @@ export interface CreateProductData {
 	inventoryQuantity?: number;
 	lowStockThreshold?: number;
 	weight?: number;
-	dimensions?: Record<string, number>;
+	dimensions?: Record<string, unknown>;
 	images?: string[];
 	tags?: string[];
 	metaTitle?: string;
@@ -226,7 +226,7 @@ export interface UpdateProductData {
 	inventoryQuantity?: number;
 	lowStockThreshold?: number;
 	weight?: number;
-	dimensions?: Record<string, number>;
+	dimensions?: Record<string, unknown>;
 	images?: string[];
 	tags?: string[];
 	metaTitle?: string;
@@ -257,7 +257,7 @@ export interface Stream {
 	isRecorded: boolean;
 	recordingUrl?: string;
 	tags: string[];
-	metadata?: Record<string, number>;
+	metadata?: Record<string, unknown>;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -270,7 +270,7 @@ export interface CreateStreamData {
 	scheduledAt?: Date;
 	isRecorded?: boolean;
 	tags?: string[];
-	metadata?: Record<string, number>;
+	metadata?: Record<string, unknown>;
 }
 
 export interface UpdateStreamData {
@@ -281,7 +281,7 @@ export interface UpdateStreamData {
 	status?: Stream["status"];
 	isRecorded?: boolean;
 	tags?: string[];
-	metadata?: Record<string, number>;
+	metadata?: Record<string, unknown>;
 }
 
 export interface Vendor {
@@ -350,7 +350,7 @@ export interface Video {
 	shareCount: number;
 	commentCount: number;
 	tags: string[];
-	metadata?: Record<string, number>;
+	metadata?: Record<string, unknown>;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -367,7 +367,7 @@ export interface CreateVideoData {
 	format: string;
 	isPublic?: boolean;
 	tags?: string[];
-	metadata?: Record<string, number>;
+	metadata?: Record<string, unknown>;
 }
 
 export interface UpdateVideoData {
@@ -377,7 +377,7 @@ export interface UpdateVideoData {
 	status?: Video["status"];
 	isPublic?: boolean;
 	tags?: string[];
-	metadata?: Record<string, number>;
+	metadata?: Record<string, unknown>;
 }
 
 export interface Payment {
@@ -398,7 +398,7 @@ export interface Payment {
 		| "refunded"
 		| "partially_refunded";
 	paymentMethod: string;
-	metadata?: Record<string, number>;
+	metadata?: Record<string, unknown>;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -411,7 +411,7 @@ export interface Payout {
 	currency: string;
 	status: "pending" | "in_transit" | "paid" | "failed" | "canceled";
 	description?: string;
-	metadata?: Record<string, number>;
+	metadata?: Record<string, unknown>;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -421,7 +421,7 @@ export interface CreatePaymentIntentData {
 	amount: number;
 	currency?: string;
 	paymentMethodTypes?: string[];
-	metadata?: Record<string, number>;
+	metadata?: Record<string, unknown>;
 }
 
 export interface CreatePayoutData {
@@ -429,7 +429,7 @@ export interface CreatePayoutData {
 	amount: number;
 	currency?: string;
 	description?: string;
-	metadata?: Record<string, number>;
+	metadata?: Record<string, unknown>;
 }
 
 export interface Notification {
@@ -438,7 +438,7 @@ export interface Notification {
 	type: "order" | "stream" | "product" | "vendor" | "system" | "payout";
 	title: string;
 	message: string;
-	data?: Record<string, number>;
+	data?: Record<string, unknown>;
 	isRead: boolean;
 	createdAt: Date;
 	readAt?: Date;
@@ -449,7 +449,7 @@ export interface CreateNotificationData {
 	type: Notification["type"];
 	title: string;
 	message: string;
-	data?: Record<string, number>;
+	data?: Record<string, unknown>;
 }
 
 export interface MediaFile {
@@ -462,7 +462,7 @@ export interface MediaFile {
 	url: string;
 	r2Key?: string;
 	thumbnailUrl?: string;
-	metadata?: Record<string, number>;
+	metadata?: Record<string, unknown>;
 	status: "uploading" | "processing" | "ready" | "failed";
 	createdAt: Date;
 	updatedAt: Date;
@@ -489,7 +489,7 @@ export interface ProcessingResult {
 	success: boolean;
 	processedUrl?: string;
 	thumbnailUrl?: string;
-	metadata?: Record<string, number>;
+	metadata?: Record<string, unknown>;
 	error?: string;
 }
 
@@ -502,7 +502,7 @@ export interface AnalyticsEvent {
 	eventAction: string;
 	eventLabel?: string;
 	eventValue?: number;
-	properties?: Record<string, number>;
+	properties?: Record<string, unknown>;
 	timestamp: Date;
 	ipAddress?: string;
 	userAgent?: string;
@@ -518,7 +518,7 @@ export interface TrackEventData {
 	eventAction: string;
 	eventLabel?: string;
 	eventValue?: number;
-	properties?: Record<string, number>;
+	properties?: Record<string, unknown>;
 	ipAddress?: string;
 	userAgent?: string;
 	referrer?: string;
@@ -591,7 +591,7 @@ export interface WebhookEvent {
 	id: string;
 	type: string;
 	source: "internal" | "stripe" | "cloudflare" | "external";
-	data: Record<string, number>;
+	data: Record<string, unknown>;
 	timestamp: Date;
 	signature?: string;
 	processed: boolean;
@@ -957,4 +957,61 @@ export interface OrderItemRow {
 	price: string;
 	total: string;
 	created_at: Date;
+}
+
+export interface StreamRow {
+	id: string;
+	vendor_id: string;
+	title: string;
+	description: string | null;
+	thumbnail_url: string | null;
+	stream_key: string;
+	rtmp_url: string;
+	playback_url: string;
+	status: "scheduled" | "live" | "ended" | "cancelled";
+	scheduled_at: Date | null;
+	started_at: Date | null;
+	ended_at: Date | null;
+	viewer_count: string;
+	max_viewer_count: string;
+	like_count: string;
+	share_count: string;
+	comment_count: string;
+	is_recorded: boolean;
+	recording_url: string | null;
+	tags: string[];
+	metadata: Record<string, unknown> | null;
+	created_at: Date;
+	updated_at: Date;
+}
+
+export interface ProductRow {
+	id: string;
+	vendor_id: string;
+	category_id: string | null;
+	name: string;
+	slug: string;
+	description: string | null;
+	short_description: string | null;
+	sku: string | null;
+	price: string;
+	compare_price: string | null;
+	cost_price: string | null;
+	track_inventory: boolean;
+	inventory_quantity: string;
+	low_stock_threshold: string;
+	weight: string | null;
+	dimensions: Record<string, unknown> | null;
+	images: string;
+	tags: string[];
+	meta_title: string | null;
+	meta_description: string | null;
+	is_active: boolean;
+	is_featured: boolean;
+	is_digital: boolean;
+	view_count: string;
+	like_count: string;
+	share_count: string;
+	created_at: Date;
+	updated_at: Date;
 }

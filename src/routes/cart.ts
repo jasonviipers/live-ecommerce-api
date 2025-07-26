@@ -1,13 +1,13 @@
-import { Hono, Context } from "hono";
+import { Hono, type Context } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { authMiddleware, optionalAuthMiddleware } from "../middleware/auth";
-import { createError } from "../middleware/errorHandler";
-import { logger } from "../config/logger";
+import { authMiddleware, optionalAuthMiddleware } from "@/middleware/auth";
+import { createError } from "@/middleware/errorHandler";
+import { logger } from "@/config/logger";
 import CartRepository from "@/repositories/cart";
 import { addItemSchema, updateItemSchema } from "@/utils/validation";
 import ProductRepository from "@/repositories/product";
 import { z } from "zod";
-import { User } from "@/types";
+import type { User } from "@/types";
 
 const cartRoutes = new Hono();
 

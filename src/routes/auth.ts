@@ -263,8 +263,11 @@ auth.post("/logout", authMiddleware, async (c) => {
 						});
 					}
 				}
-			} catch (jwtError) {
-				logger.warn("Invalid token during logout", { userId: user.id });
+			} catch (_jwtError) {
+				logger.warn("Invalid token during logout", {
+					token,
+					userId: user.id,
+				});
 			}
 		}
 		logger.info("User logged out successfully", { userId: user.id });

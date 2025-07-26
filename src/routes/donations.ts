@@ -8,8 +8,8 @@ import {
 	updateGoalSchema,
 } from "@/utils/validation";
 import { getDonationService } from "@/services/donationService";
-import { DonationTier } from "@/types";
-import Stripe from "stripe";
+import type { DonationTier } from "@/types";
+import type Stripe from "stripe";
 import { stripe } from "@/utils/utils";
 import { config } from "@/config";
 

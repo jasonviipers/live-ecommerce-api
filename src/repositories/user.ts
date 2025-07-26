@@ -131,7 +131,6 @@ export async function findAll(
 		whereClause += ` AND (first_name ILIKE $${++paramCount} OR last_name ILIKE $${++paramCount} OR email ILIKE $${++paramCount})`;
 		const searchPattern = `%${filters.search}%`;
 		values.push(searchPattern, searchPattern, searchPattern);
-		paramCount += 2; // We added 3 parameters but only incremented once
 	}
 
 	// Get total count
@@ -167,10 +166,9 @@ export async function update(
 		(key) => data[key as keyof UpdateUserData] !== undefined,
 	);
 	const values: (string | boolean | Date | undefined)[] = [];
-	let paramCount = 0;
 
 	const setClause = fields
-		.map((field) => `${camelToSnake(field)} = ?`)
+		.map((field, index) => `${camelToSnake(field)} = $${index + 1}`)
 		.join(", ");
 	// Build dynamic update query
 	fields.forEach((field) => {
@@ -185,7 +183,7 @@ export async function update(
 	const sql = `
 		UPDATE users 
 		SET ${setClause}
-		WHERE id = $${++paramCount}
+		WHERE id = $${fields.length + 1}
 		RETURNING *
 		`;
 
