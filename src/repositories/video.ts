@@ -165,7 +165,6 @@ export async function findAllVideos(
 		whereClause += ` AND (title ILIKE $${++paramCount} OR description ILIKE $${++paramCount})`;
 		const searchPattern = `%${filters.search}%`;
 		values.push(searchPattern, searchPattern);
-		paramCount++;
 	}
 
 	if (filters.tags && filters.tags.length > 0) {

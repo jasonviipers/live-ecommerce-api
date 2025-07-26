@@ -1,11 +1,12 @@
-import { EventEmitter } from "events";
-import crypto from "crypto";
+import { EventEmitter } from "node:events";
+import crypto from "node:crypto";
 import { query } from "@/database/connection";
-import { WebhookDelivery, WebhookEndpoint, WebhookEvent } from "@/types";
+import type { WebhookDelivery, WebhookEndpoint, WebhookEvent } from "@/types";
 import logger from "@/config/logger";
 import { config } from "@/config";
 import { createId } from "@paralleldrive/cuid2";
 import { getDonationService } from "./donationService";
+import type { Stripe } from "stripe";
 
 export class WebhookService extends EventEmitter {
 	private webhookEndpoints: Map<string, WebhookEndpoint> = new Map();
@@ -42,13 +43,8 @@ export class WebhookService extends EventEmitter {
 
 	private async initializeService(): Promise<void> {
 		try {
-			// Load webhook endpoints from database
 			await this.loadWebhookEndpoints();
-
-			// Start processing queue
 			this.startProcessingQueue();
-
-			// Setup cleanup intervals
 			this.setupCleanupIntervals();
 
 			this.isInitialized = true;
@@ -61,10 +57,9 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	// Create webhook event
 	async createEvent(
 		type: string,
-		data: any,
+		data: Record<string, unknown>,
 		source: WebhookEvent["source"] = "internal",
 	): Promise<WebhookEvent> {
 		await this.ensureInitialized();
@@ -100,7 +95,6 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	// Register webhook endpoint
 	async registerEndpoint(
 		url: string,
 		events: string[],
@@ -154,7 +148,6 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	// Update webhook endpoint
 	async updateEndpoint(
 		endpointId: string,
 		updates: {
@@ -199,7 +192,6 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	// Delete webhook endpoint
 	async deleteEndpoint(endpointId: string): Promise<boolean> {
 		await this.ensureInitialized();
 		try {
@@ -227,7 +219,6 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	// Process Stripe webhook
 	async processStripeWebhook(
 		payload: string,
 		signature: string,
@@ -262,8 +253,7 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	// Handle Stripe events
-	private async handleStripeEvent(event: any): Promise<void> {
+	private async handleStripeEvent(event: Stripe.Event): Promise<void> {
 		try {
 			switch (event.type) {
 				case "payment_intent.succeeded":
@@ -297,9 +287,8 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	// Handle payment intent succeeded
 	private async handlePaymentIntentSucceeded(
-		paymentIntent: any,
+		paymentIntent: Stripe.PaymentIntent,
 	): Promise<void> {
 		try {
 			const metadata = paymentIntent.metadata;
@@ -319,8 +308,9 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	// Handle payment intent failed
-	private async handlePaymentIntentFailed(paymentIntent: any): Promise<void> {
+	private async handlePaymentIntentFailed(
+		paymentIntent: Stripe.PaymentIntent,
+	): Promise<void> {
 		try {
 			const metadata = paymentIntent.metadata;
 
@@ -341,23 +331,36 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	// Handle invoice payment succeeded
-	private async handleInvoicePaymentSucceeded(invoice: any): Promise<void> {
+	private async handleInvoicePaymentSucceeded(
+		invoice: Stripe.Invoice,
+	): Promise<void> {
 		try {
-			// Get customer ID from the invoice
-			const customerId = invoice.customer;
+			const customerId =
+				typeof invoice.customer === "string"
+					? invoice.customer
+					: invoice.customer?.id;
 
 			// Get subscription ID if this invoice is for a subscription
-			const subscriptionId = invoice.subscription;
+			let subscriptionId: string | undefined;
+
+			if (
+				invoice.parent?.type === "subscription_details" &&
+				invoice.parent.subscription_details
+			) {
+				subscriptionId =
+					typeof invoice.parent.subscription_details.subscription === "string"
+						? invoice.parent.subscription_details.subscription
+						: invoice.parent.subscription_details.subscription?.id;
+			}
 
 			if (subscriptionId) {
 				// Update user subscription status to active
 				const sql = `
-          UPDATE users 
-          SET subscription_status = 'active', 
-              updated_at = CURRENT_TIMESTAMP
-          WHERE stripe_customer_id = $1
-        `;
+        UPDATE users 
+        SET subscription_status = 'active', 
+            updated_at = CURRENT_TIMESTAMP
+        WHERE stripe_customer_id = $1
+      `;
 				await query(sql, [customerId]);
 
 				// Create internal event for subscription payment
@@ -389,7 +392,6 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	// Handle order payment success
 	private async handleOrderPaymentSuccess(orderId: string): Promise<void> {
 		try {
 			// Update order status
@@ -412,10 +414,10 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	// Handle subscription events
-	private async handleSubscriptionCreated(subscription: any): Promise<void> {
+	private async handleSubscriptionCreated(
+		subscription: Stripe.Subscription,
+	): Promise<void> {
 		try {
-			// Update user subscription status
 			const customerId = subscription.customer;
 
 			const sql = `
@@ -436,9 +438,10 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	private async handleSubscriptionDeleted(subscription: any): Promise<void> {
+	private async handleSubscriptionDeleted(
+		subscription: Stripe.Subscription,
+	): Promise<void> {
 		try {
-			// Update user subscription status
 			const customerId = subscription.customer;
 
 			const sql = `
@@ -460,7 +463,6 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	// Start processing queue
 	private startProcessingQueue(): void {
 		setInterval(async () => {
 			if (this.isProcessing || this.processingQueue.length === 0) {
@@ -845,7 +847,17 @@ export class WebhookService extends EventEmitter {
 		}
 	}
 
-	private mapRowToWebhookEndpoint(row: any): WebhookEndpoint {
+	private mapRowToWebhookEndpoint(row: {
+		id: string;
+		url: string;
+		events: string;
+		secret: string;
+		is_active: boolean;
+		retry_policy: string;
+		headers: string | null;
+		created_at: Date;
+		updated_at: Date;
+	}): WebhookEndpoint {
 		return {
 			id: row.id,
 			url: row.url,

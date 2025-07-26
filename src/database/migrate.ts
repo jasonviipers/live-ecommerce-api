@@ -25,7 +25,7 @@ const createMigrationsTable = async (): Promise<void> => {
 
 const getExecutedMigrations = async (): Promise<string[]> => {
 	const result = await query("SELECT name FROM migrations ORDER BY id");
-	return result.rows.map((row: any) => row.name);
+	return result.rows.map((row: { name: string }) => row.name);
 };
 
 const markMigrationExecuted = async (name: string): Promise<void> => {

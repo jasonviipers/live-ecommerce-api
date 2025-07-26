@@ -7,7 +7,7 @@ import CartRepository from "@/repositories/cart";
 import { addItemSchema, updateItemSchema } from "@/utils/validation";
 import ProductRepository from "@/repositories/product";
 import { z } from "zod";
-import type { User } from "@/types";
+import type { CartSummary, User } from "@/types";
 
 const cartRoutes = new Hono();
 
@@ -40,7 +40,7 @@ async function verifyCartItemOwnership(
 cartRoutes.get("/", optionalAuthMiddleware, async (c) => {
 	try {
 		const user = c.get("user");
-		let cartSummary;
+		let cartSummary: CartSummary | null;
 
 		if (user) {
 			const userCart = await CartRepository.getOrCreateForUser(user.id);

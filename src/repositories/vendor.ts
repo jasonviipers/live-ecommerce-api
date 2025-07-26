@@ -1,7 +1,7 @@
 import type { PoolClient } from "pg";
 import { query, withTransaction } from "@/database/connection";
 import type { CreateVendorData, UpdateVendorData, Vendor } from "@/types";
-import { SqlParameter } from "./video";
+import type { SqlParameter } from "./video";
 
 interface VendorRow {
 	id: string;

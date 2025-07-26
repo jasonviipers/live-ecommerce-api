@@ -6,9 +6,9 @@ import {
 	requireAuthenticated,
 	requireVendorOrAdmin,
 	requireAdmin,
-} from "../middleware/auth";
-import { createError } from "../middleware/errorHandler";
-import { logger } from "../config/logger";
+} from "@/middleware/auth";
+import { createError } from "@/middleware/errorHandler";
+import { logger } from "@/config/logger";
 import OrderRepository from "@/repositories/order";
 import {
 	addressSchema,
@@ -19,9 +19,49 @@ import {
 import CartRepository from "@/repositories/cart";
 import ProductRepository from "@/repositories/product";
 
+interface OrderFilters {
+	status?: string;
+	paymentStatus?: string;
+	dateFrom?: Date;
+	dateTo?: Date;
+	userId?: string;
+	vendorId?: string;
+}
+
+interface StatsFilters {
+	dateFrom?: Date;
+	dateTo?: Date;
+	vendorId?: string;
+}
+
+interface OrderItemInput {
+	productId: string;
+	variantId?: string;
+	quantity: number;
+	price: number;
+}
+
+interface UpdateOrderData {
+	status?:
+		| "pending"
+		| "confirmed"
+		| "processing"
+		| "shipped"
+		| "delivered"
+		| "cancelled"
+		| "refunded";
+	paymentStatus?:
+		| "pending"
+		| "paid"
+		| "failed"
+		| "refunded"
+		| "partially_refunded";
+	notes?: string;
+	shippedAt?: Date | string;
+	deliveredAt?: Date | string;
+}
 const orderRoutes = new Hono();
 
-// Get all orders (user's own orders or vendor/admin)
 orderRoutes.get(
 	"/",
 	authMiddleware,
@@ -32,7 +72,7 @@ orderRoutes.get(
 			const user = c.get("user");
 			const query = c.req.valid("query");
 
-			let filters: any = {
+			let filters: OrderFilters = {
 				status: query.status,
 				paymentStatus: query.paymentStatus,
 				dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
@@ -71,7 +111,6 @@ orderRoutes.get(
 	},
 );
 
-// Create order from cart or direct items
 orderRoutes.post(
 	"/",
 	authMiddleware,
@@ -96,7 +135,7 @@ orderRoutes.post(
 			const user = c.get("user");
 			const data = c.req.valid("json");
 
-			let orderItems: any[] = [];
+			let orderItems: OrderItemInput[] = [];
 
 			if ("cartId" in data) {
 				// Create order from cart
@@ -196,7 +235,6 @@ orderRoutes.post(
 	},
 );
 
-// Get single order
 orderRoutes.get("/:id", authMiddleware, requireAuthenticated, async (c) => {
 	try {
 		const user = c.get("user");
@@ -230,7 +268,6 @@ orderRoutes.get("/:id", authMiddleware, requireAuthenticated, async (c) => {
 	}
 });
 
-// Get order by order number
 orderRoutes.get(
 	"/number/:orderNumber",
 	authMiddleware,
@@ -269,7 +306,6 @@ orderRoutes.get(
 	},
 );
 
-// Update order (vendor/admin only)
 orderRoutes.put(
 	"/:id",
 	authMiddleware,
@@ -281,7 +317,6 @@ orderRoutes.put(
 			const id = c.req.param("id");
 			const data = c.req.valid("json");
 
-			// Get existing order
 			const existingOrder = await OrderRepository.findById(id);
 			if (!existingOrder) {
 				throw createError.notFound("Order not found");
@@ -293,15 +328,23 @@ orderRoutes.put(
 			}
 
 			// Convert date strings to Date objects
-			const updateData: any = { ...data };
+			const updateData: UpdateOrderData = { ...data };
 			if (updateData.shippedAt) {
-				updateData.shippedAt = new Date(updateData.shippedAt);
+				updateData.shippedAt = new Date(updateData.shippedAt as string);
 			}
 			if (updateData.deliveredAt) {
-				updateData.deliveredAt = new Date(updateData.deliveredAt);
+				updateData.deliveredAt = new Date(updateData.deliveredAt as string);
 			}
 
-			const order = await OrderRepository.update(id, updateData);
+			const order = await OrderRepository.update(id, {
+				...updateData,
+				shippedAt: updateData.shippedAt
+					? new Date(updateData.shippedAt)
+					: undefined,
+				deliveredAt: updateData.deliveredAt
+					? new Date(updateData.deliveredAt)
+					: undefined,
+			});
 
 			if (!order) {
 				throw createError.notFound("Order not found");
@@ -325,7 +368,6 @@ orderRoutes.put(
 	},
 );
 
-// Update order status (vendor/admin only)
 orderRoutes.patch(
 	"/:id/status",
 	authMiddleware,
@@ -384,7 +426,6 @@ orderRoutes.patch(
 	},
 );
 
-// Update payment status (admin only)
 orderRoutes.patch(
 	"/:id/payment-status",
 	authMiddleware,
@@ -433,7 +474,6 @@ orderRoutes.patch(
 	},
 );
 
-// Cancel order
 orderRoutes.post(
 	"/:id/cancel",
 	authMiddleware,
@@ -489,7 +529,6 @@ orderRoutes.post(
 	},
 );
 
-// Get order statistics (vendor/admin only)
 orderRoutes.get(
 	"/stats/summary",
 	authMiddleware,
@@ -507,7 +546,7 @@ orderRoutes.get(
 			const user = c.get("user");
 			const query = c.req.valid("query");
 
-			let filters: any = {
+			let filters: StatsFilters = {
 				dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
 				dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
 			};

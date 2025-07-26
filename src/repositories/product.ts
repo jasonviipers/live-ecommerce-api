@@ -1,11 +1,11 @@
 import { query, withTransaction } from "@/database/connection";
-import {
+import type {
 	CreateProductData,
 	Product,
 	ProductRow,
 	UpdateProductData,
 } from "@/types";
-import { PoolClient } from "pg";
+import type { PoolClient } from "pg";
 
 // Helper function to generate slug from name
 function generateSlug(name: string): string {

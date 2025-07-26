@@ -148,7 +148,7 @@ export const optionalAuthMiddleware = async (c: Context, next: Next) => {
 		const decoded = toJWTPayload(payload);
 
 		const userData = await UserRepository.findById(decoded.userId);
-		if (userData && userData.isActive) {
+		if (userData?.isActive) {
 			let vendorId: string | undefined;
 			if (userData.role === "vendor") {
 				const vendor = await VendorRepository.findByUserId(userData.id);

@@ -5,8 +5,6 @@ import {
 	authMiddleware,
 	optionalAuthMiddleware,
 	requireVendorOrAdmin,
-	requireVendorOwnership,
-	requireAdmin,
 } from "@/middleware/auth";
 import {
 	createProductSchema,

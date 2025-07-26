@@ -6,7 +6,6 @@ import {
 	authMiddleware,
 	requireAuthenticated,
 	requireVendorOrAdmin,
-	requireAdmin,
 } from "../middleware/auth";
 import { createError } from "../middleware/errorHandler";
 import { logger } from "../config/logger";

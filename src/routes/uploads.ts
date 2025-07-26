@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
 import multer from "multer";
 import { authMiddleware, requireAuthenticated } from "@/middleware/auth";
 import { createError } from "@/middleware/errorHandler";
